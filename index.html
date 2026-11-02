@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#09131d">
+<title>GST API | Global Position Viewer</title>
+<style>
+  :root{color-scheme:dark;--bg:#09131d;--side:#0d1925;--card:#142230;--border:#26394a;--muted:#8ea4b5;--text:#e9f1f7;--accent:#49d9c0}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;overflow:hidden}
+  body{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+  button,select,input{font:inherit}button{cursor:pointer}
+  .app{display:grid;grid-template-columns:310px minmax(0,1fr);height:100vh;height:100dvh}
+  .sidebar{position:relative;display:flex;flex-direction:column;min-height:0;background:var(--side);border-right:1px solid var(--border);z-index:2}
+  .side-scroll{flex:1;min-height:0;overflow-y:auto;padding:25px 22px 19px;scrollbar-color:#3b5368 transparent;scrollbar-width:thin}
+  .brand{display:flex;align-items:center;gap:13px;margin-bottom:29px}
+  .brand-symbol{width:39px;height:39px;border:1px solid #4b8d92;border-radius:11px;display:grid;place-items:center;flex:none;background:linear-gradient(145deg,#173e45,#0d222e);box-shadow:inset 0 0 14px #48ccba11}
+  .brand-symbol svg{width:26px;height:26px}
+  .brand-name{font-size:19px;line-height:1;font-weight:820;letter-spacing:.09em}
+  .brand-sub{color:var(--muted);font-size:10px;letter-spacing:.19em;margin-top:7px}
+  .section-label{display:flex;align-items:center;justify-content:space-between;color:#9db2c1;letter-spacing:.145em;font-size:10px;font-weight:800;margin-bottom:12px;text-transform:uppercase}
+  .pill{border:1px solid #37516a;border-radius:20px;padding:4px 8px;color:#b8cad7;background:#142434;font-size:10px;letter-spacing:.08em}
+  .live-row{display:flex;align-items:center;gap:8px;color:#a9d2cb;margin:0 0 18px;font-size:11px}
+  .pulse{width:7px;height:7px;flex:none;border-radius:50%;background:var(--accent);box-shadow:0 0 9px #49d9c088}
+  .pulse.warn{background:#efa66b;box-shadow:0 0 8px #efa66b44}
+  .big-number{font-size:52px;font-weight:780;letter-spacing:-.06em;line-height:1.03;font-variant-numeric:tabular-nums}
+  .big-sub{color:#bdcbd7;font-size:12px;margin-top:4px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;margin-top:19px;gap:9px}
+  .stat{background:#142330;border:1px solid #203647;border-radius:10px;padding:12px}
+  .stat strong{display:block;font-size:22px;font-weight:720;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
+  .stat span{display:block;margin-top:5px;font-size:10px;letter-spacing:.07em;color:var(--muted);text-transform:uppercase}
+  .rule{height:1px;background:#26394a;margin:24px 0}
+  .feed-heading{margin-bottom:12px}
+  .source-list{display:grid;gap:9px}
+  .source{border:1px solid #294052;background:linear-gradient(155deg,#162635,#11202c);border-radius:10px;padding:12px}
+  .source-head{display:flex;align-items:center;gap:9px;min-width:0}
+  .source-color{width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 3px #ffffff0b;flex:none}
+  .source-name{font-weight:690;font-size:12px;flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.3}
+  .source input[type=checkbox]{width:16px;height:16px;accent-color:#49d9c0;cursor:pointer;flex:none}
+  .source-meta{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0 0 18px;color:#94abbc;font-size:10px}
+  .source-status{margin:7px 0 0 18px;color:#edb37d;font-size:10px;overflow-wrap:anywhere;line-height:1.45}
+  .source-data-time{margin:6px 0 0 18px;color:#86a4ac;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .empty-feed{color:#94aab9;font-size:12px;line-height:1.6;border:1px dashed #324b5e;padding:15px;border-radius:9px}
+  .refresh-block{flex:none;padding:18px 22px 23px;border-top:1px solid var(--border);background:#0d1a27}
+  .refresh-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .refresh-header .section-label{margin:0}
+  .refresh-pair{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin:10px 0;font-size:12px}
+  .refresh-pair .label{color:var(--muted)}
+  .refresh-pair .value{text-align:right;font-weight:640;font-variant-numeric:tabular-nums}
+  .refresh-control{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:13px}
+  select{appearance:none;min-width:0;width:100%;border:1px solid #3b5363;background:#152838;color:#edf5fa;padding:10px 31px 10px 11px;border-radius:8px;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23a8bdca' stroke-width='2'/%3E%3C/svg%3E");background-position:right 12px center;background-repeat:no-repeat}
+  select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #4ed9c8;outline-offset:2px}
+  .btn{border:1px solid #397b7a;background:#1e625f;color:#eafff8;padding:10px 12px;border-radius:8px;font-weight:700;white-space:nowrap}
+  .btn:hover{background:#287873}
+  .small-note{color:#7994a6;font-size:10px;line-height:1.5;margin-top:12px;overflow-wrap:anywhere}
+  .test-mount:not(:empty){margin-top:17px}
+  .test-section{border:1px solid #49634d;background:#142920;border-radius:10px;padding:13px}
+  .test-title{font-size:11px;font-weight:800;letter-spacing:.08em;color:#bee0ac}
+  .test-text{color:#a6c0ad;font-size:11px;line-height:1.5;margin:8px 0 10px}
+  .drop-area{display:block;width:100%;padding:13px 10px;border:1px dashed #699078;border-radius:8px;text-align:center;color:#d3e9d1;background:#19382c;cursor:pointer;font-size:11px}
+  .drop-area.drag{background:#29503c;border-color:#a4dfa7}
+  .test-file-count{margin-top:9px;font-size:10px;color:#b6cebd;overflow-wrap:anywhere}
+  .test-clear{border:0;background:none;padding:5px 0;color:#b5dac9;text-decoration:underline;font-size:11px}
+  .map-area{position:relative;min-width:0;overflow:hidden;background:#0b1928;touch-action:none}
+  canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+  canvas.dragging{cursor:grabbing}
+  .map-top{position:absolute;left:28px;top:25px;pointer-events:none;text-shadow:0 1px 8px #09131ddd}
+  .map-eyebrow{font-size:10px;color:#86a7b4;letter-spacing:.18em;font-weight:800}
+  .map-title{margin-top:6px;font-size:21px;font-weight:740;letter-spacing:-.025em}
+  .map-caption{margin-top:6px;color:#9ab7c4;font-size:11px}
+  .zoom-controls{position:absolute;right:23px;top:23px;display:flex;flex-direction:column;gap:6px;z-index:3}
+  .zoom-btn{border:1px solid #375367;border-radius:8px;width:38px;height:38px;color:#daedf2;background:#102536e9;display:grid;place-items:center;font-size:23px;font-weight:400;box-shadow:0 5px 15px #07121a50}
+  .zoom-btn:hover{background:#1b3548}
+  .zoom-reset{font-size:11px;font-weight:800;height:31px}
+  .map-bottom{position:absolute;bottom:16px;left:24px;right:24px;display:flex;align-items:center;justify-content:space-between;gap:15px;pointer-events:none;font-size:11px;color:#91aebd;text-shadow:0 1px 6px #07101c}
+  .map-bottom strong{color:#c4e1e5;font-weight:600}
+  .scale{font-variant-numeric:tabular-nums}
+  .map-error{position:absolute;left:50%;bottom:68px;transform:translateX(-50%);max-width:calc(100% - 50px);padding:11px 16px;border-radius:8px;background:#182b3ceb;border:1px solid #36576c;color:#c1d5e0;text-align:center;font-size:12px;pointer-events:none;line-height:1.5}
+  .hidden{display:none!important}
+  .popup{position:absolute;z-index:4;width:min(370px,calc(100% - 25px));max-height:min(580px,78%);display:flex;flex-direction:column;background:#111f2d;border:1px solid #4b667b;border-radius:13px;box-shadow:0 16px 46px #03090fc9;overflow:hidden}
+  .popup-header{display:flex;align-items:flex-start;gap:12px;padding:15px 15px 13px;border-bottom:1px solid #294154;flex:none}
+  .popup-heading{flex:1;min-width:0}
+  .popup-kicker{font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:#80b9b3;margin-bottom:6px}
+  .popup-title{font-size:15px;font-weight:750;overflow-wrap:anywhere}
+  .popup-coords{font-size:11px;color:#94b2c2;margin-top:6px;font-variant-numeric:tabular-nums}
+  .popup-close{border:1px solid #38556b;background:#1c3241;color:#c6d8e3;width:29px;height:29px;border-radius:7px;font-size:20px;line-height:1;flex:none}
+  .popup-fields{overflow:auto;padding:4px 16px 13px;scrollbar-color:#486579 #142536}
+  .popup-field{display:grid;grid-template-columns:42% minmax(0,1fr);gap:9px;border-bottom:1px solid #26394a;padding:9px 0;font-size:11px;line-height:1.4}
+  .popup-field:last-child{border:0}
+  .field-key{color:#91aabd;overflow-wrap:anywhere}
+  .field-value{color:#e0edf3;overflow-wrap:anywhere;white-space:pre-wrap}
+  .popup-nav{display:flex;align-items:center;justify-content:space-between;padding:9px 15px;border-top:1px solid #294154;flex:none;background:#152737;color:#b1c9d3;font-size:11px}
+  .popup-nav button{border:1px solid #375467;border-radius:6px;background:#203b4e;color:#ecf6fa;padding:5px 10px}
+  .popup-nav button:disabled{opacity:.3;cursor:default}
+  @media(max-width:800px){.app{grid-template-columns:255px minmax(0,1fr)}.side-scroll{padding:18px 16px}.refresh-block{padding:15px 16px}.map-top{top:20px;left:19px}.map-title{font-size:17px}.zoom-controls{top:17px;right:15px}}
+  @media(max-width:620px){html,body{overflow:hidden}.app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}.map-area{grid-row:1;grid-column:1}.sidebar{grid-row:2;grid-column:1;height:235px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-top:1px solid var(--border);border-right:0}.side-scroll{padding:14px;overflow:auto}.refresh-block{padding:13px;overflow-y:auto;border-top:0;border-left:1px solid var(--border)}.brand{margin-bottom:14px}.section-label{font-size:9px}.big-number{font-size:32px}.stats{margin-top:10px}.stat{padding:7px}.stat strong{font-size:16px}.rule{margin:14px 0}.map-bottom{bottom:13px;left:15px;right:14px}.map-title{font-size:15px}.map-caption{max-width:210px}.popup{max-height:72%;width:min(360px,calc(100% - 20px))}.refresh-control{grid-template-columns:1fr}.refresh-pair{font-size:10px}}
+  @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" aria-label="Data and refresh sidebar">
+    <div class="side-scroll">
+      <div class="brand">
+        <div class="brand-symbol" aria-hidden="true"><svg viewBox="0 0 30 30" fill="none"><circle cx="15" cy="15" r="10.5" stroke="#69e0c5" stroke-width="1.6"/><path d="M4 15h22M15 4c-5 5-5 17 0 22M15 4c5 5 5 17 0 22" stroke="#69e0c5" stroke-width="1.2"/><circle cx="20" cy="10" r="3.1" fill="#e4f5e9"/></svg></div>
+        <div><div class="brand-name">GST API</div><div class="brand-sub">GEOSPATIAL VIEWER</div></div>
+      </div>
+      <div class="section-label">GLOBAL DATA FOOTPRINT <span class="pill" id="modePill">LIVE API</span></div>
+      <div class="live-row"><span class="pulse" id="statusDot"></span><span id="statusText">Initializing viewer</span></div>
+      <div class="big-number" id="visibleCount">0</div>
+      <div class="big-sub">records included in active map layers</div>
+      <div class="stats"><div class="stat"><strong id="totalCount">0</strong><span>CSV rows read</span></div><div class="stat"><strong id="inViewCount">0</strong><span>in map view</span></div></div>
+      <div class="rule"></div>
+      <div class="section-label feed-heading">DATA SOURCES <span id="feedCount">0 feeds</span></div>
+      <div id="sourceList" class="source-list"><div class="empty-feed">Waiting for a JSON manifest and its CSV endpoints.</div></div>
+      <div id="testMount" class="test-mount"></div>
+    </div>
+    <div class="refresh-block">
+      <div class="refresh-header"><div class="section-label">REFRESH SCHEDULE</div><span class="pill" id="refreshPill">AUTO</span></div>
+      <div class="refresh-pair"><span class="label">Last pull</span><span class="value" id="lastPull">Never</span></div>
+      <div class="refresh-pair"><span class="label">Next pull</span><span class="value" id="nextPull">—</span></div>
+      <div class="refresh-control"><label><span class="hidden">Refresh frequency</span><select id="frequency" aria-label="Refresh frequency"><option value="15000">Every 15 seconds</option><option value="30000">Every 30 seconds</option><option value="60000">Every 1 minute</option><option value="300000">Every 5 minutes</option><option value="900000">Every 15 minutes</option><option value="1800000">Every 30 minutes</option><option value="3600000">Every 1 hour</option><option value="21600000">Every 6 hours</option><option value="86400000">Every 24 hours</option></select></label><button class="btn" id="refreshButton" type="button">Pull now</button></div>
+      <div class="small-note" id="apiStatus">Manifest-based GET access. No server components or external mapping services.</div>
+    </div>
+  </aside>
+  <main class="map-area" id="mapArea" aria-label="Interactive world map">
+    <canvas id="mapCanvas" aria-label="World map with plotted data points. Use mouse wheel or plus and minus buttons to zoom."></canvas>
+    <div class="map-top"><div class="map-eyebrow">GST / GLOBAL MONITOR</div><div class="map-title">Current GST API Data ~ Live</div><div class="map-caption">Country boundaries · latitude / longitude · WGS84</div></div>
+    <div class="zoom-controls" aria-label="Map controls"><button type="button" class="zoom-btn" id="zoomIn" aria-label="Zoom in">+</button><button type="button" class="zoom-btn" id="zoomOut" aria-label="Zoom out">−</button><button type="button" class="zoom-btn zoom-reset" id="resetMap" aria-label="Reset world map">1:1</button></div>
+    <div class="map-bottom"><span><strong id="hoverCoords">WORLD VIEW</strong> <span id="zoomLevel" class="scale">· 1.0×</span></span><span>Base map: Natural Earth · public domain</span></div>
+    <div class="map-error hidden" id="mapNotice" role="status"></div>
+    <section id="popup" class="popup hidden" aria-label="Selected position details">
+      <div class="popup-header"><div class="popup-heading"><div class="popup-kicker" id="popupSource"></div><div class="popup-title" id="popupTitle"></div><div class="popup-coords" id="popupCoords"></div></div><button id="popupClose" class="popup-close" type="button" aria-label="Close record">×</button></div>
+      <div class="popup-fields" id="popupFields"></div>
+      <div class="popup-nav"><button id="popupPrev" type="button">← Prev</button><span id="popupIndex"></span><button id="popupNext" type="button">Next →</button></div>
+    </section>
+  </main>
+</div>
+<script>
+"use strict";
+/* DEPLOYMENT SETTING: the ONE URL to your GitLab Pages JSON endpoint catalog.
+   All CSV endpoint URLs are discovered from that JSON. Do not add them here. */
+const CONFIG = Object.freeze({
+  API_MANIFEST_URL: "https://YOUR-NAMESPACE.gitlab.io/YOUR-PROJECT/gst-api.json",
+  DEFAULT_REFRESH_MS: 300000,
+  MAX_ZOOM: 36,
+  HTTP_TIMEOUT_MS: 45000,
+  MAX_PARALLEL_FETCHES: 4
+});
+/* Bundled Natural Earth 110m country outlines: no tile provider, CSS/CDN, or JS library. */
+const WORLD_PACKED = [["Fiji",["_db@lcB?`B|FxAXiAaDs@uB}@","ixa@jlBo@_@eAx@`@fBzBZlBYPwAkAcA{AV","tbb@bcBX~ANJ?aBi@I"]],["Tanzania",["{rE|DwVlLMrB}GfEzAtFKpB_CfAEr@v@vBK|@J~AwC`IiAj@~CrBxElAvBCfAz@hCBt@XnFw@tCNv@oGjBsCbEe@pB{@lEcArAq@jB{FrBoBf@sBSgBb@wDqAIgEyE@aAh@k@JoAy@WKuBnAqBeAWqRK"]],["W. Sahara",["du@{kDBbJnSIE~NxDPp@dBe@~GnW?h@`AGsAeMOWgAqAyAaAsGuGwE}A{F}@MaA{CgDUgAXyA?aAm@{BEDkB]?"]],["Canada",["vqQgqHxlD?bKcElCwAjJqAlBqD[yB~FuAb@_DnFqCDeBoB_BD_CrI}BhIsJ|HkDhBgBfE`A`EnB|H{E`Ew@dEEAwy@uJn@yH~AqEPmDsAsF}@gHVkHuAgIq@gCpAuCm@k@}AiCRqIrDkGgCYvCuF_@kA{@qFJqHrAsMhAqG`@cEMmGdBvGbBgJh@{OWiDa@uEvByEeBjEsA_CcAsK]aDn@gEjB_FOaJxAuH_@cHDV{BqDc@uHbA@|D_C_DaDDyAiEtE{BhFoAO{EkFqCgG^iEvAoG`FpD`BsJf@?lEiG}CoF~Bz@tCaEdCoEoCqCkDK{EcQj@kGbBK`BrCjBkChBX`BdKjCvG\\lE{@z@bB~DhDx@tAfFfC|GL|CrAL`CfFVtFbDvE~ElA|CHfFcH`@wDpIwGe@sJtAgEjAoC|AyFv@sErAcP\\`@lD}@fEqC~EiH|DyC_AkBmEfB{HlCiB_I}AaFkCoBiCNeCfCiDrFuCkFqEtAuDbAwHkCm@cPhAeDs@yD`AuFrB}@lAcJNDfDaAzFwD^oCtBaHoB}D{EeC}A{R`TnA|BiGnBsDrB}Hp@aC~@mAhD{CXoAjAO~E`HpCfIfAzFbDpI^jLi@zNJfDnC|FvA~GhGdFvDgDa@aIeGcLeDiHSqD`B|DdC_AvEaAtCcGbBiI[gEaFMpCaCfAvF`CxLvBfEnA|EnCvCMFiDyIcD~HD|EV`CoB?qGvAw@fC^`As@vCvC|@xCdAzArCf@Tp@~S@xAb@jF~C~@lAzJ?xA^_@f@MpAdG`BlE^fFhBp@?bA]T]o@yA}AmBy@uBpAcJnE}AWa@\\Yt@?f@_@Hm@f@Rr@EKSn@SRs@zTwGpDv@`A@tFs@`DX`E}@vIk@|@a@b@mBbA@?jA","|kOieKsC{AqG@Bd@hFlBjCCj@u@","rqN_fMzEiBIgA_BMiMTwIlBQt@jLIzEZx@K","fuNsbKuAiAqADq@f@lAhBvAQr@{@","`hQssMlBlA`HOpFs@iByA_Hu@mDdAiA~@","niQocNpMGt@u@sK@kCd@VT","t{QikNmFdAt@fAfHh@`Dm@tAkANqAwJR","|eP}oMtYyAdAmBVaBfEwA|KWfF}@iAqA}KJ}E~@gK?mD`Al@jAeFj@}Bn@qPX}Hk@wKOcILuEhAm@rA|Br@hHj@~FW|P\\xKB","jvTmgNyG\\bAz@rJx@fH_AaD_AcHS","zwTykNoJp@rFd@jI?A[mE{@","hyImaItGbJcCcAeCh@dAdAoDv@}Aq@eE|@|@pCkCa@YhB}@zBrAnDxAFbCe@k@cDv@WfFlDvBGmC}A~Do@zQD\\{@{BeAtAu@gDyBmE}H{BqBmDcA{AF","fkO}uK_M`CQ~AqCOoC`ApD~@vHo@nByAdEhBzGfBdAuBlGRmDcBY{CcAwDoCNc@vAgB]sBr@","hkNecM}DoAyLdBsG|AYvAsJm@oE~BaNlAoDpA{DxDnJ|AwM`C}Hj@_HvDyHL|@jC~IfFtFuAxH_EbGXVpBqErBoGzAqAt@aCdEbAnC|Fw@rN_DiNdH_@dA|OoAjLsBrFaBeAw@jQgEAx@`Q^hDcAcCsCwJC{KW`AgAeAcBaGaEv@yAjAcApH_BtKcA_Cs@rE{BnDK|CcAhBz@jJXtUm@jVwAdDeAoE{AzG?~@kEyCqDmEqAcOs@pC~B}C|BwDaDyNqAwIlE\\bCkKy@","rmQinM_LD}Jn@hHpDnFf@tEtCbFGzBoDAcBgBsAgEu@","x~VwzMqIsC{KaCqH@qG]ZxCxCdAxDHrJtA~H\\lGk@","l|XwpI_EOz@bFmD~CnA?vB{AhA{AbB}@d@wAK_A}AX","hrSsnNgKX{OhAyC~AmApAdIUhI_A|LGaE{@pFo@LkA","|bWenHbBZhI{Ax@eArDeAb@w@lEc@jAmBOm@kIhA{DRgDbDgErAqAlB","rvVipM}Gh@}NHyKlCzFr@hNjCvFjC?vAlO~AhBwAlMiB_FeFmDcCbEyBcT_@","z`TayMqD_@qEFc@`BxB|AdT^vNtAnHDXaA_LwAf[VvGc@oGcE}Dw@qPbAcJtB{IN|G_EwDgAmETcA~AmAdA","vxSwgM_FpA}B`E}@lCwT`ETvAfIN_CjAbAhAhJ_@vIu@fFJvJbA|Yn@jB}ApGu@pDTtF}CyLw@yGHcGc@`Km@dUJhBiAoMoAtH@zIs@gDuCiCoAwOwBkEd@bB|A}L}@uGdBaFeBuD`AcDbEcBsAlCkEoD]gE^","vrRmeMzEaCkF_BoFh@cJYs@x@xD~AmHtAb@rDfIlA~DQhCkApNyCC_AwKV","fyS_kMkGGwCj@nDbCvHkCcA[","rfRo~MwCzAGfBzArChIRtE_@CsBfINL{CwEDmHcAwGJOY","bwQwvNkC}@kEMvAm@qMI_GjBwSnA}CbCqF~@rGz@pJtC~IL~KWtEqAAgA}Cu@jJ@|EcA|ByAiCwA","l{Py~NiHg@qRe@eHiAwFHwEv@wCkBmRu@cRGiBTaQa@wj@f@mLXmJt@Ft@fNtAbNf@tDl@sLAvMxBdIv@tIbDzK`@~Bf@|QTsGVhCb@eD`B|DdAtHv@|AlAvGz@[l@uIGCn@tOvBhOu@jQ\\bTa@X_BqJm@`BoCyBMuOtAnG_CbIe@aDmAaJo@y@eAzGmArAeBaPF}CTwHgA`MWzTJ`JcAdDoAhFy@j@cA","buModL`Cx@~EHp@aBuAoBuD[}Cv@AtAVZ","nzQorLuDpBzBdAlG{@`DTpGyAoD}@kCuAkIzA","frKuvHeAQeGp@kErAEb@~ABbG}@xD}A","`oK_eHeA`BoCXyDC`BpAhAJ|FsAp@cAkA}@"]],["United States of America",["v~VgqH_lD??kAcAAc@lB}@`@wIj@aE|@aDYuFr@aAAqDw@{TvGSr@o@RJRs@Dg@SIl@g@^u@?]XV`@oE|AqAbJx@tBhCrDBRU\\cA\\q@?gFiBmE_@eGaBLqA^g@yA_@{J?_AmAkF_DyAc@_TAUq@sCg@eA{A}@yCwCwCaAr@gC_@wAv@?pGaCnBc@`AtE~A`L`ChC`D@jBaAfBqADRiA{@l@Pv@dC^~AArC`@jERdDx@eHe@{@d@vGz@~B?EW|@v@{@Fj@nCpCxCLs@j@I`Aq@i@jBq@b@AjAnDjFPG}@gCdBkAVeDd@tAi@~BbC_@iC~@G|Dy@Lo@lG|BrCnEz@`CrBbBLdBhAZ`AzE`CnB~A~AtB\\lCc@hCaAjDwAlCAtA}AfFLrEp@xBz@X`BW^wAjAm@fEeI\\mAi@cCv@mBzCgDlA]hExAb@I~A{A|Bq@`FXpDUvCJpA^c@t@BnAi@f@d@XhA]hAd@pCEtCiBlDXpCm@zBLfDl@tDrCdEtAlB~Al@xA@hCI~Ae@bAlADhHiBv@}Aj@kCtBqBhD}FjCoAbDB|B|CdD{@fB{@rBuEzEwChAeAxI??pAjP@vVoFSe@`Nb@`@eB~BqB|AWTy@nBIfAu@xDSp@_@VmB`EgEfDuGGm@vAaAzCgDZcDhBkBk@eDDkD~@yCmA{Do@iJb@kG~@kDx@{AWg@aHbAiBzDq@s@^cDbAcD","bm]u}B_DpAq@dApCtA\\^p@[Ew@^gAk@w@Le@KS","~m]w`CNV`ALz@gASOyBp@","vr]kcCDTjBEOWaBF","tz]wfCkAnAJJrAI^u@s@[","`c^yiCCl@TRbAe@g@a@m@D","lo_@kxJ_DPQjAxB^|F{AeEa@","t|\\iiJeCLsA|@lD|AfElAdBs@\\}A_HeB","dpZurL@vy@eEDaEv@}HzEaEoBgEaAiBfB}HjDiIrJsI|BE~BnB~AlBkAnD_Av@mD`GaDjB{D|NQhFy@|KoEzOkBtGNhK{AjFsA|Eh@g@hCtIt@nDbA|Eh@ZsByAeEsE{@t@q@~FlBfCdC~GlCqC`BzDlC~KpCp@vAvHfB|@|AhFrAhCMjP|DvIx@\\a@yE}AcE}@uEkBwFWaBqAuGwBk@g@sCeAa@wCeBuBdFz@`Aa@jBhA`CeBt@fAjAcBfEnAxB?NwBc@gA`CgAbGd@fD}AhCo@?oBxCuAmAqBaDoBgAgBaDMgC^aD_BqCNwC}@d@yAnBc@sCmAxB@rEj@|@j@|Ck@xGTdHo@rAoAzFsBwGsA_MaBcD?ZbBeLG`D{BtFkAlCcB~DsApG_AoBgBaJG{FyAo@aBkE}AcEWyJwAwDLsHkBmHh@qCxAwAe@qIJJl@qH`@kESeL~@_KPyCXiG_@gOvA","hp`@smK{Bd@{BSaDr@eEXNTvCh@bFoAnDJn@QKiA"]],["Kazakhstan",["_aPqrHvCbCdDPHhEnBxAjKaAnCdJdBj@jKnAsDzIhCr@OpBzB]bBgArRYfAT|GsAnBh@^tBhIeA`C\\l@tApBd@fGjCvAlChA@t@_B~FEf@cD`B?OiEnFqCtINjF\\|DuD~NkF`OtBG`VdBHjC{CfCw@bFf@vAbAHq@o@qAd@eAfFcAxAsDlBq@DaAaERGsCiD_@mD\\c@aEb@{BfEHhDq@fFvAxDh@dB_@SgB|BcCrCBhDeCqBwCx@i@_DyEmErBWsC}KwEwHEeTzEsEsA{HC_GdBy@y@yGFq@}AbIiC_EaBd@u@_Es@nCgC{AeAkVcAaBq@sNiAsDsAgJj@}@nEoEq@aGbANlB}DKuN{DfA|@}FzC_MzNiBiBsGrB}Gs@oBb@_BrBkCd@sAtAaG[iBzB"]],["Uzbekistan",["y|IeaGFaVaOuB_OjF}DtDkF]uIOoFpCNhEaB?g@bD_GDu@~AiAAwAmCgGkCqBe@{@RfD`CsCjAmCq@mFfB`GnCvCQpABZw@i@{AjGl@~@~B|AnBfDIr@vAsCn@i@rCnBjEtCk@nB?EyBhGuApEaBfJgF`BmE`Ae@vEHlAi@R}ClGiBfDrBjDbAa@dB`F@"]],["Papua New Guinea",["gpZfO{IhCoJpByFjE]tBmIxBo@hBvDTk@dCqD`CaCrEsBEFvAyC`@z@d@sErATx@bCLp@s@tJs@jGmFfBmDdGwAfDx@xB`AWpCzCdAnBa@nEGDwg@","ov\\fS{CrCWfB|@t@d@uBl@mAlEuCnC{@w@o@cGrC","sp\\nc@rE~AhB?tGqBO}@sDZmBM]_B[EShBqBMw@eAoBeATuBwBCg@^BnBbAxBfBN^v@","gf]j`@{@l@aB|B}AbAZv@v@RtAkAvA_Cj@wC[SUz@"]],["Indonesia",["gpZfOEvg@pDcDhEg@p@v@|FDuAaD}Bw@r@yE~AgDbKgDdDQjHwDx@~AlAPj@gA@wAvCaBwEgAmCBNu@dH?lAuBrDe@rAaBmGo@eBaAaIpA]hAw@bIoEvBeDsEeFyBqD?_IlCuEd@","alWpv@Sf@Cz@`CtCjDj@VWQcAuAyBeEoA","yeYbj@RwCmAiCm@x@@|AdBhC","w_V{XpBtDsCzD`@zA_FxDlFV`AfCGrD~DhCDdEjApH\\eAbFxAlAyBlCKbB_AlFfAhAaB`CJdDW\\kGbBw@~AiDZoDWwDuBeCa@dCgCpBaCi@_CNsBeB_BQ}Dv@aDi@eBuGmAeAeAcFeF?kD`@","qgXnP{Ex@gAxCfDqAdDQpBLhCGo@mBuFG","}wWtVhCc@d@uAiEIq@`AjA`A","q~WqLMjBuBPSpAHlDfBS\\xBqAhBv@VnA}Bz@_Gg@_DaAgA","i_WoDeFGeEoCa@j@~CdEtCd@`Ee@jIHnDZZvCsDpDkByAsJcANzAvA]tAtBnDjA{D`Gb@bAsDdF@bChBx@lAeA_BcDbElAp@w@YkAnCuBMaEbCz@WfO|BZtAy@w@wD\\aErA?|@iCqAaC[_DeBkHi@sAiDsC{Cz@{FX","{nVb_AhGkCyDg@oDxBJt@rAB","kuVjt@eCOqDiAZnBlHv@hGW?iA_Dg@{Bz@","cbVfs@{BOq@tApJ`AjBAcAqBmBAu@eAgAr@","aeTbg@YfA_KRk@qAqJ~AiA~BkHd@uFtBdFjAzEoAbKIxDc@fFkArCSpAXlJsA`@uAtDMgC}DsFH_DnAsAL","ikSvEa@jCeAnBqCPaB|Bp@xFFrH|EBfDeD`GcDrAyBvCaDbBuCvCwGnDeDbCgIrD}BfBkDvCoBnE{EPeBuLl@qDbEgGzE}DtEkEBgDfCsBfDwCzAnA`DqBdAgAB"]],["Argentina",["|kL~gIoDpFcGvBwGp@xAbB|DHdBeAlIE?}L","dgJz{DdBjJAfEj@j@\\hF}FjDXhC{BtAH`B~D~FfHjBpKh@zESi@tBf@tCc@dBvBdAjEZ~DiAlAr@[fEgCz@kB_A{@fBvD|@~C|B\\fEn@jBzD?zCdBx@tCcEpC_Eh@dApDjFpB`ChFtDlApA|A_AnEeCrBlGi@`NYrAsBCuCdCJdAgAPsEyCwA_A_CVcBiBkDiAgGTuBwAe@TiAzAg@aAsAzAkAl@gFoAg@`@sFeB}JwBiA|@aE?wDwCaCDgDqBcEAwDr@c@|AwI{BmEPaEeAuDcC{DkC{Bx@mAg@_ADmIyEaBcAoEVq@gDuDeGp@sBnCmAaDcFFoKpJcD\\sFrCmElA]vAdEnHiEv@_F\\}C_@uDyC_@oDcBe@cBpBB~ClH~D`F`EjGpG"]],["Chile",["|kL~gI?|LmID`AnAjD|@vEUpC{@pE]fMyEpG_FcDh@yGdCgGdAgByA_AiCwDqAoCV","|qLzlBaBfCYnCiBtA~@~DkB~EmArGoCYWp@bAnExE`BElIf@~@y@lAjCzBbCzDdAtDQ`EzBlE}AvIs@b@@vDpBbEEfDvC`C?vD}@`EvBhAdB|Ja@rFnAf@m@fF{AjA`ArA{Af@UhAvAd@UtBhAfGhBjDWbB~@~BxCvAQrEeAfAeCKBtCsArBaNXyD^pDAtGxB^xDrAD`FaAbFiCxFsB|@}Bw@uBbBcCXuIuA_EqEyClHy@}DqDcAkI}EdAgB}KdCs@|@xF|B]aCoS{AgCx@cEN_FsAGeGaSsAiHl@kH{@cDVwFsBsFe@aK}B_ZLeIh@yGeBs@u@eB"]],["Dem. Rep. Congo",["kvDb[c@vDRfBg@rBsBnBkBzFlASlG`@t@Vv@|Bk@xAz@rLaEpBw@c@OvExCAxCcExC[l@gBxB|@~C[`AyA~BQ|ABH}@~CObGh@ImF`AiANyB]wBf@mAB}BrF@QgAdB?Hb@zBFnAdDnB[`AZbCNxBiDhBkGlQCrEn@Z}@s@UEuA_@s@iAi@s@RcAkAkB@Mv@iAb@}G}GFeDwAaE{AeBaCaBW_ACgAa@eAJqBYoDe@}B{@iB]cGmAeBkB_AcDbA_ChAgHx@y@wB[O{AR}EcBoAh@_AE]o@iAQuGXaASyBbDyAVu@a@{ALoBi@m@tAoDbCJhFoAZ~@dAjAt@jAfBh@zAJ`Dl@jA@tCx@v@FvBXLRlBs@xAKpF"]],["Somalia",["}bGnIvBcD@wUeFaH_CCqDmCcGGuPwQeFaHAgKeGu@}AcAkA?JrGj@fAv@vEzE~MjDbHtKnNfE`DhHfExDvCzEpFl@hBj@l@"]],["Kenya",["_tFf\\|GgELsBvVmL@sE{CuEiAqCnBiI|AiCaG{FgB`@?nBcA`AkC?{FhDmBCk@VeCNy@sAwDsAoAbAiC?nDbFAvUwBbDlCnAn@rAjALZlC~@nAf@dCnA`A"]],["Sudan",["qxCmr@vCwAdAw@L_Aa@qA@qApB{BReChA{@@sBh@mAdAJSiAs@qAVsAaA{@h@o@u@yByAsCmDLFmZeF??oKeiA?_AbEj@b@[lEiAnFyDxBdBpBpC`@~@z@RdCtAdHUnA^jDpAbEvBbBtAvCRpA|Av@z@pEArD@{CZCCcBVeAdBmAVoCWsC|AMLl@vBHo@x@QvBlBlBbBnCdBRfDsBjAh@Rx@fBd@Df@fE?Zg@nCGfA`@t@OhCkDnCZv@zAp@pD`Cz@gClA"]],["Chad",["_tCkyBIxWlDMxArCt@xBi@n@`Az@WrAr@pARhAeAKi@lAArBiAz@Bn@|B`@dBnAnCxEzD|A`EKv@PSdA|DrCxFjAp@k@`@Cb@p@dDN_@u@zA}EvAa@tBsBk@}A{ARw@MoB@lBuDGeCLcClA_CS}A`CCAaCrAiAuAeG_G}DIcGmAuKi@uApAcAB_AhAs@p@uHiEmB{p@|V"]],["Haiti",["d_MezBQjBNjAp@`@s@z@Bv@bCa@|AJxBM|Ad@jB}@Q_AoIh@gAk@zAuAAkA~B_@m@w@gHh@"]],["Dominican Rep.",["z~L_nBDoBr@{@q@a@OkAPkBWa@{C?wBr@s@Ec@fAmBCDx@wAFaBhAhAnA|Ai@|CAb@b@lAL\\q@`A\\nAfCr@_@"]],["Russia",["a|a@k{L}FsA?hCzEH`@_A","{qH_aHxAtB`E`@fElEuD|DRdCyEjFtBnA`@r@xAMfCyBtDs@|@qAxDi@xB^`@e@pG_BlMaAVV~FiDbFkAjDsBoC_@eDgDnBoAgHoADk@rD^GyAeBw@aEM_@aAl@mBqAiB@y@fHaArB@zB{AvC\\|FeACe@fAwA~CIN}@q@g@~BqBlER|@Ip@l@hAGp@_Cl@aAe@S_DFmAk@v@u@fCa@Kc@pAe@zBaCi@u@R}A`Eo@hBVZq@pEq@~@uBP_B~Am@uA_Az@yDmCsB\\c@cFmBpE}AeRsJkAeBfHgCoAaCrDuCgCkDhFaFyDwCpHcC[kCaDSsIoAmEeAiIxBaPn@sV`FyC|AMdC|EfBfIt@zZwCrCXeIpCYhH}KnBY_BvBuA_CkAaNzBiDo@fCsCqMcEyDJyDdAsBiCdDuBaBwBrC{BoP~@qBnBzFV?nB}CbAsHi@q@_C{a@kGuCHbExBwFRmCcAwJEgHqAcFvBcFcCpEsBgBaAmQz@uG~@sUbFeCiBjEgBBk@pFQaA_BjB{CD_AqJsDcCuDsCg@qOr@i@nB|D`D{B~@_AjCl@pG}ExBtAdCfKzGcF\\oAgA{Es@u@aBkD_BrBqB}AcCzEOn@oB_DgEbGcDeJeCl@mCcBCgBlBlA~DuEd@zAoCoIoA}KIqJpBpDeDRuE{Ig@aNFoLY`DgBgFcCeFCcKcBoOYaAw@mOQcDj@_MiBoJBw@uA}DuAwMqAwI`AnGn@cM^u@`BuDo@iQ@aM`B_DhAn@fBjVhDtCz@_PlAsDe@eB~BwAq@_I_@aS^o@|AcY\\KyCgLb@_IAaIhB{A~BtBrA{F|CyHnA_EqEaIxAsIu@cK|@qCw@gIZnCyDgGuAmw@`CiDtBkOxCgXe@mK^eDrAVpCuFv@kGg@aJEyJf@{JU{IpDwF_A`D_CwAyA}Rv@_LK_Q~AwGvA?zW`GxAbGOsDhBwBdD{At@WpAr@t@tJk@lPtCpDVrQdGhAzA|GiChOzCxAiA~DtAjG[~@bCnF`EEnAcFj@XbHxDFtAdDsAtA|IfBdAbFhHn@z@jE~GxDhAiCdE_V_BuGiDuBI}AuHm@eJyFwImEgJ_D_DyGpFNvBdDzNzEbDuFbObArNlIcDzBpVfAMoCvH_@vFbB`Rc@pSz@dk@|YyHXaBzBaEj@_CaB{EJaHzEEhDzCfEPlFxA~HlH`H`AhC|SdQhGtB|B@|B_BjGpC^`AZc@@cBeBE]kFr@kDiDeAsFb@eCcEcAyEmAiAiBsDjIz@jDlAnH?pA{DjFmCzI_AhAcEjGyKnDiAjH{@fGDxFb@bDbBmBl@AnBnB~@rDrEAvAxG|BnFkAlFNhBaAvBUbHlCfG^vDp@zF_@vD@xBeBbE_BfE[xL~@zGsAd@uC`LiA~EsAlEnEoAtB`EhC`Hq@dEEdC}ApEClD{@nH|AzJjD`Hr@hB{B`GZrAuAjCe@~AsBnBc@|Gr@rGsBhBhB~L{N|F{CgA}@tNzD|DJOmB`GcAnEp@|@oEfJk@rDrArNhA`Bp@jVbAzAdAoCfC~Dr@e@t@~D`BcIhCp@|AxGGx@x@~FeBzHBrErAdT{EvHD|KvEVrClEsB~CxEy@h@pBvCiDdCsCC}BbCRfBeB^","ciQkyNoLm@cKbBmM`Ep@rDrLVlPw@jImAvCmCpGg@gOgC","waSonNyNpBx@nAfb@lAkJeGeDWuCL","ubZ{zMoOHsUhB|CrC`VEhIn@lKaCkBiCgGe@","wq[{vMiZrAdFlA~HQrJmAo@aA","ciZqiM}DoAyFQ{GjAWt@lH?|L_@","iwGuvNeKc@oHAg@t@sBo@{Da@gHj@jA\\`Mh@Z^fF`@xEo@qB}@zLE","amCqrInJBtFWm@wAsG_AqE`@wA^Tv@Op@","mmI}kM}MoDt@yA_MiBsS_CySe@uIiAeKYiCnAdC|@fh@`EjR|DbRbKg@dD_KbDvBPjSYt@yAhJs@ZkBkEk@FkBmKkDvDW","qzZyrIyBdIBbEqAhEgE`JfHaAxB`HaEjEBjCvCwBbCxCb@gDUaEVwEo@wCGiGtBeEQoGyD{AnA}AwA[","hda@acLN|BeCn@l@oC}O\\gKxDdEvAfIRDbEnAh@xDEvCeAhGy@l@wAhE_@bFXjBeAi@iAlFn@yA|ApBrA?{WiNvCkOdE","x{a@azLdGJ?iCcEG_Hx@NZlEn@","_pEi~Gs@q@mEp@Yf@]DAPaBn@kEKf@fAxE`@nGrBlBg@k@}AzE{@c@e@_EaA\\W"]],["Bahamas",["rlNmfD}AOcCDEr@xE^LiA","deN_hD}CxA`@lCd@YCgBxAoA?U","tgNq|C{@FeAdDArBp@Hp@sBjAy@k@}B"]],["Falkland Is.",["n}J`cIoFwBiDp@wBoA_DxAz@dAlGz@xAeAhDxAbByA"]],["Norway",["s}A}pNkAeAeHEm[xEtNnAnBpCnDd@|AdDpFFlLyBuDgAjHw@dKiDzC{CaPgAmBdA{GA","kaEwqLrInA`DRuAmC`GmAtH`A`BrC|DvAvEo@bGH~EiBtBr@zBF\\bCxJ_@r@nB~D?jIjJtHvGgAbAdAnAdEC`CzDKhG_CdB`AhFdDhCvApBdCyBjKfFhGl@rGeBfAuE~@mMwD_CoOgDkKoEmYwSsZqKwLwAgIJqHeDkJFgJg@oRrC~Fr@yE|B","ijDksNhHjBbQVjQa@b@u@~GCxE{AiRw@aHn@iE{@yNp@gKdA","oyCqeN|LpA~Io@iCs@xB}@}Kg@oAhA_Hl@"]],["Greenland",["fcHmcO}SwB}TH_GiAaUS}p@Xaf@|CnJlApx@ZcBb@cUU{QbAcK{@eDfAzErB}NiAi]mAwQd@oBtAnXlCnBl@~R`@oMHhFpC~C`CE|EoF`CxHHfI|@qJhBm@hDtEPcGjDzLNgFnA`AfAxG\\vG?{FfCAxAjKsAdBt@mGp@eGxBkA`DdJd@nK_EcAfCfFfBaXRv`@jIfQbA|E@lEjAtGrElLjChCFhP~AjDzB@jCdBbCdI~CoAzC~DfJxGJdHaDnKA`EmBdCaExIyFdBaCZsDrGwDgAsCdCeAeEiFkHiAoAsAi@{CpIbBrD\\rFaALgCmAiByDCwKt@hOcEfEZdDo@}E{DxBiAlK}I~FmAAsAvOsBfLO|^VfF_AzI}BkO}@sKKvYs@bMoA[mAqm@_EmAiAzOgAmDoAsTiCcHUrAyAyMs@eR_@gRAyE|@qOmB}MjAwGL_L`AzMkB[uA"]],["Fr. S. Antarctic Lands",["{mL|nH_C|@}DXEd@v@xArHLBkBk@yB"]],["Timor-Leste",["alWpv@Wm@kDm@iCE_AYkAXhAt@vJnCB{@Rg@"]],["South Africa",["ceBrqD_BcBoAv@a@rAuEt@kBOqDeBAaVu@\\uB|DPxBk@dAoCSaEuCo@_BaBm@sAV_Bv@cDH}Bm@w@}CmBO{@kAaAeCsDsCyGsCqA@_B`@cAWiBRsCfLb@|EQfAdBc@x@LPx@t@jAAbAuBlBuBUg@yAwC@p@pCVdDr@xAlD`C|FzInJdIvCzAnEjAdBJXt@xB[`Bd@xEg@vBXrAKlEnAhD^zBjAxABtAgA`ACvAwAFZZu@AuB~@eC_Ac@DyC`CyDtFmL","ivDzuD|CyB|Af@jBlAhB~BuCxCgASc@_AoB_@_BaD"]],["Lesotho",["kqD`rD}CxB~A`DnB^b@~@fARtCyCiB_CkBmA}Ag@"]],["Mexico",["`{UkjEaNc@Rd@wVnFkPA?qAyI?iAdA{EvCsBtEgBz@eDz@}B}CcDCkCnAiD|FuBpBk@jCw@|AiHhBmAElAnD`@nCNjGP`Ba@jB}@`Bg@xCcCtCo@pBmA`BsEt@qArAoDw@wCSsGgA_CoAo@uBOgDa@y@gCs@sEm@oDDyBOo@h@F~AhBtBn@xBc@b@nApFp@s@nADfAxBb@WVFA\\rJA?pBxA?sCnBUj@_@JBbA`G?~AbD[d@Tl@Dx@`FwEfB_A`Ds@nBL~CjAdBR`H{AzD{AtC[`F{AfD_Bp@u@nBKjE}@rA{AtEqBbB}Bn@_BaASRy@m@s@?cA`AyAPoAbAcBnDgEhE{C~A{BjDqAb@o@]{BdBo@tB_Bp@kCjBOpEiEF_AjBuCdAyCAkAnCoAbAHpBw@^pAa@~AStCyFhG]NYbAc@Cg@`C{@p@k@fA{BdBcAxDqBrDIhBaBDwCtDB`@rAhAb@?t@yB`CqBtFsCEqC\\kBfFwCZXp@s@zBo@tBsBOOqAJiAkAGyAxCmCtBw@nF_LpAsD"]],["Uruguay",["dgJz{DaCUiExCiAEiJnFsBfCvA|Aw@pBvA|B`FlBpCg@lBTvDuAfCDxBmBOaCk@k@@gEeBkJ"]],["Brazil",["plI`rEv@qBwA}ArBgChJoFhADhEyC`CTkGqGaFaEmH_EC_DbBqBbBd@cAiF?mBfAc@jA^hAGVmAPuDd@{@dCu@pAd@rEe@MoGz@mB_Ai@RqBu@wAc@}Cl@{BlBw@TmA]sB~JGjAiFy@A@uAf@{@FqBrB{@|B@rAy@dCg@nAiA~Ea@vEqDOeCVmASuCdG`@fBjAnDnAj@z@zFKnB`@zAUMoHbDtBnDEjAiBdCKi@uAlByBrAsDu@c@?sAwBy@RkBs@eAM}AcFgCcDe@[]sDH}A{R^qBvAgA?qCqBa@g@TEmArBSB{BeKBaAeAw@~@e@tBe@WmBhB{CMg@}@eFmAWuAmCw@Hi@hDQZ}BGeCxAs@e@QsCX_Dp@y@o@mC]_FkAiAkAXw@gBGm@l@XvAcA\\m@zAv@dA\\hDq@dBMzA{B|AaBHUe@yCk@_Au@kGXQg@^g@Sy@oAP}ASiEpA}@u@m@HYv@_BMkAkA}@sCuBwDcAGq@lBoB|IkB^ChCtCdD}@z@aJ^GfEwCcCyFfAkIxBaBtB^lBgF}@eKhBiHGgHdD_G~EyCx@iDFgA|@eBvJnAjIdB`CxGtG|B`FrClDp@Bv@pCMvJlAvL|@lAb@jGhEbG`@nE`DtAn@vBvE?zHjAjCxA~Ex@jF~ChDdEZrCa@nBd@hEl@~AjClB|E~InD~CfC|AxA|DbCpB"]],["Bolivia",["pqLlcA{FJk@{@oDoAgBkAeGa@RtCWlANdCwEpD_F`@oAhAeCf@sAx@}BAsBz@GpBg@z@AtAx@@kAhF_KF\\rBUlAmBv@m@zBb@|Ct@vASpB~@h@@}@zDeBvDC|Ix@~AnDBjBnAnF^k@bFGlA`DrBoCdGq@fDtDnCXlAsGjB_F_A_EhBuAXoC`BgC}BwEtAgDm@cAb@iAmAcBMuHi@cAjDaI"]],["Peru",["xsLzYrDIZ\\bDd@bFfCL|Ar@dASjBvBx@?rAt@b@sArDmBxBh@tAeCJkAhBoDDcDuBLnH{AToBa@kD`Ih@bALtHlAbBc@hAl@bAuAfDrD|HdBr@hEsBNqAjKgEfJyExC{BpAeD_@w@hDgGbEoJ|DmKpA{A|@sCzCaClCoA_AyA~A}D}@kC_D_CWrAx@n@EhAqAOqARqAdBqBqAe@gCyBmDoFmA{EqE}@aCZwCs@QeC|A_A|A{Ar@uBpEsCVoBs@gA`@wBOwC|A~BhE{@DcBhB"]],["Colombia",["~`LyFd@Vd@uBv@_A`AdAdKCCzBsBRDlAf@UpB`@?pCwAfA_@pB|AzRbBiBz@E_CiEvC}AvBNfAa@nBr@rCWtBqEzAs@~@}AdC}Ar@PvDqBx@^fD[p@uAd@BfEqBX}@iAOFcBm@gAcBM_DeFhAo@e@sBj@uDi@u@^gDnAiBYaB_ALe@{@l@sBW]eBDuCkCsASe@kFqB{A}BCOi@}CNiFqCaB_BeAJs@t@d@`A~B`@r@bBjAx@z@hAVlCt@tBeBJYzAk@j@OpAVhAGh@o@No@dAaGSsBXkCjDoAUoCJqBWgA`@b@jBj@bANnCg@bCw@z@Gj@dBbBgAj@u@dA{@fE"]],["Panama",["lbNeu@V\\m@rBd@z@~@MX`B`Ay@j@kBq@u@r@Mb@aAbBw@vALf@dAnAp@j@DRh@_BjBrAv@|AH`@wBX`@`AKf@oAdCc@tA?Dj@V_@[oAFc@]Wh@[?qAkAQgAfABh@oAHSOu@n@aBMuAq@yBg@cA{@mBJFRoBDwA`@mCrB"]],["Costa Rica",["|bOyz@jAP?pAi@Z\\VGb@ZnAjBk@f@i@Ua@Dk@v@o@rCaAJy@t@c@Mx@f@n@l@u@~@SZg@A}@Y}@v@]kA_AcCt@m@Y}@Na@h@y@Jo@i@s@jBiDdD"]],["Nicaragua",["ziOkcAn@h@x@K`@i@|@Ol@XbCu@\\XbDoCj@aAvDyCU]a@\\kAWYk@]ADaByACi@u@{@f@}BeBCi@S@Yo@SEa@\\g@Hk@Yq@?eAY[[cABX~@ShAl@bATnADvAOlC^RPtAMr@h@r@It@]^"]],["Honduras",["tfOw|AbACZZdAXp@?j@Xf@I`@]RDXn@RABh@|BdBz@g@h@t@xABE`B\\@Xj@|@H`@_Az@OMqAZSh@MtATFYfBgAx@Og@s@Ne@Og@wDcCUFk@a@gER{ACwAm@oBV{AUyB^wBrAgA\\s@t@"]],["El Salvador",["lmPcyAy@NgBfAGXuAUeA`@b@~BrBAfASrAg@lBKx@k@G[iBgAJWo@K"]],["Guatemala",["l_Q{yAEy@Um@Ze@_BcDaG?CcA^KTk@rCoByA??qBsJ@P~J{@?aAb@O]y@XvDbCNf@Od@f@r@n@JKVhBfAFZdBa@zBCzAg@jBqA"]],["Belize",["tlPibBO}KWGc@VgAyBe@A?\\e@?@t@`@vAQ\\^~Dd@r@b@Ff@bAz@?"]],["Venezuela",["pzJo_@Yv@hAjA~EjAlC\\x@n@~Cq@rCYd@PyAr@FdC[|BiDPIh@lCv@VtAdFlAf@|@zCLlBiBz@gEt@eAfAk@eBcBFk@v@{@f@cCOoCk@cAc@kBfAa@pBVnCKnATjCkDrBY`GRn@eAn@OFi@WiANqAj@k@X{AdBKu@uBWmC{@iAkAy@s@cB_Ca@Dn@tBVaAxA@fBvArBiA~CwAMk@oC|@eAHwCwFqAX}AeA}@gAjCkCBaClBGbAqD?uESqBxAyCVoB}@Aq@gNOhDz@cA|A_DNwC`B_@~CgBCmAl@|CtBPhAcAhAn@b@zB^C|At@t@gCvC"]],["Guyana",["j`J{Jn@FnBQ~@t@xCj@Td@`BIzB}AL{Ap@eB]iDw@eAl@{AbA]YwAl@m@fBFfCwCu@u@B}A{B_@o@c@bAiAQiA}CuBcChA{B`CEfBiAByDfD^rDvBr@Il@b@fBwApC_A?YnByBlD"]],["Suriname",["vsImMrBi@|ARnAQRx@_@f@Pf@jBOxBmDXoB~@?vAqCc@gBHm@wBs@_@sDoFf@Uc@aDOuEt@fBjDOhCmAtBr@pDp@rA"]],["France",["zaI_YtBvD|@rCjAjA~ALXw@l@I|@t@tAg@q@sAs@qDlAuBNiCgBkDwEdAsEfD_@pA","ue@ctH}Ar@_Hb@dBhCVlCv@`@xAQEp@pCnBBzA_B_@cAvAFv@{@jAdAz@s@zCkBVTvAtDnBhKu@bH~@TxBfFX`F{AfAj@nJyAnAmAgBwBe@mKnEqEpCeBpHkARqCaGk@oIr@|@cF{DtAqM{C{@cDmDg@]dA{ABiFlDeBO{ElBy@C","uu@miG_CkAa@jD`AxCxAg@n@gCi@iA"]],["Ecuador",["`vM\\[vC|@`CzEpEnFlAxBlDd@fCpBpApAeBpASpANDiAy@o@VsAiBsCj@wAjA|AvBwAi@w@`@uDeA]c@}BkA_CLqAmBi@gCoAgEpBe@Cq@tAgDZy@_@wDpB"]],["Puerto Rico",["f}KurBeBNc@f@r@p@hGDJsA[]cD@"]],["Jamaica",["xcNqrBeCPiBn@a@t@jCB|@`@nB_@pBiAWk@aCG"]],["Cuba",["daO}oCiIN{DbAoAhAyDUmJbGaAAuBf@Lv@sCHuCpAVl@bCXdCHhCO~GPeCmBnAs@`CMbAy@n@qBnBFzDu@z@i@bG]dAg@iAq@bEIlCfBrABZn@bBTrASgB{@k@iAyAk@eBe@wCSo@U"]],["Zimbabwe",["}aE`jChBSbAV~Aa@pAA~ByAxC]x@_C@eArAUbF{E|@sBf@a@lA_D_FTaATaACoBaCmDcDgAOWeAqBoAuCYMhAeDC}Ah@i@p@_BLgB~@?|Ff@hCFtC_@z@TrB\\Rt@nCpE`F"]],["Botswana",["}vD`iCxGrCrDrC`AdCz@jAlBNv@|C|Bl@bDI~Aw@rAW`Bl@n@~A`EtCnCRj@eAQyBtB}Dt@]?gQcEGEgUuCEsHeAkApA_CmA{@?oBm@c@NmA~Cg@`@}@rBcFzEsATAdAy@~ByC\\_CxA"]],["Namibia",["k{BpgC@hh@pDdBjBNtEu@`@sAnAw@~AbBrCwClAqC~CgSBmFXmBlAqAfBeDrCkJbDcEJyCwEgAaCDwBxA]MiXGkC~AcNZqO}BaCHoAl@?NnBl@z@?~BlAjAqArHdAtCDDfUbEF"]],["Senegal",["lgB}sArA{CbBgAwAe@aBkCo@gBcA_AcBP_Bk@oBA_Bz@cCr@}FzGI|Be@pBkAv@OlAF|@\\HjBONVj@BnCq@pMIt@T`AEhB`@^yCuDB}CkAuAh@uABwAm@h@w@`A^|@?lAq@~@Bj@n@xED"]],["Mali",["|fAwlAG}@NmAjAw@d@qBH}BcAc@_@uB_ACkCv@oBg@mAL]m@aXAk@kC`@Y~D}t@qHAci@fZo@|AyExAA|B}ES?lMlBdCNxBpD^nGPhAdA`GHp@g@lB\\xDpAd@|@zCxAXr@rAf@`BYt@n@\\hC|CdDC`At@tAMrB`Ct@^sAv@Tb@Cb@x@xCAv@]XP|@w@K{@XWh@RGaAg@q@pAsAVw@j@k@f@CfD`BrAOv@s@`@ErAXHgA"]],["Mauritania",["riBgbCi@aAoW?d@_Hq@eByDQD_OoSHAoHoVdNpH@_E|t@a@Xj@jC`X@\\l@lAMnBf@jCw@~@B^tBbAb@|F{GbCs@~A{@nB@~Aj@bBQbA~@PiBw@cBW{Dl@gHScBr@_BfBuA"]],["Benin",["yOcf@bDVp@iCGkMf@g@DcBbC_CYiBcAUi@wAaBQmBuBgAAwCrBF`Am@vBf@nAUt@~CvDd@|BD`M"]],["Niger",["y{A{mCq@tHiAr@C~@qAbAh@tAlAtKHbG~F|DtAdGsAhA@`CaCBR|Ax@JD~@b@BfC{En@GzCnBxCy@jBKx@ZtBEtBtAdBBpFeB|An@dBChAiAhEkAtEVr@j@ZpBx@pALpDvCsBfA@bAx@EiCfFk@DaBnBaCXyAMaBaCGiAeAoGQqD_@OyBmBeC?mMyGwAaQiKmT{J{HtAoBlBmCiA"]],["Nigeria",["yOcf@EaMe@}B_DwDTu@g@oAl@wBUsFy@qA[qBs@k@uEWiEjAiAhAeBB}Ao@qFdBeBCuBuAuBDy@[kBJyCx@{CoBo@FgCzEc@CoAlA^fBhDxCnAfFh@j@h@jChBpA^dBj@nAPrAhCbAnBsAjABvBtBx@@pClInEfAjAIjAj@~CCjB}B`AoCjCcCfI@"]],["Cameroon",["syAkoAmA~BMbCFdCmBtDnBAv@LzASj@|AuBrBwA`@{A|EbC~Fn@b@NzCSrANz@}AfBQfAiAdByA`A]rCLjB~HcBtGQtBXxB[|ALdIC]}CnAcCxAa@h@yAp@]Au@s@mC}A_Ey@AwBuBkACoBrAiCcAQsAk@oA_@eBiBqAi@kCi@k@oAgFiDyC_@gBnAmAE_Ay@K"]],["Togo",["sDwcAXhBcC~BEbBg@f@FjMq@hC`Dh@`BcENcBk@sDp@iAPmHrAgBM}@oDB"]],["Ghana",["C{cAL|@sAfBQlHq@hAj@rDObBaBbExHtBlBbArDx@rDw@IoAtAkDs@aFsAgDnAsLCoB{IIwAL_A_@{AN"]],["C\u00f4te d'Ivoire",["lr@i~@aAa@w@\\yC@c@y@c@Bw@U_@rAaCu@yAj@a@`AyAh@eAq@}AGgCr@u@zGrAfDr@`FuAjDHnAxA@jCg@~B@jFb@pI`Cd@CMeDSWDoArAsA~@Kx@w@i@wARaBIy@_@?KuANg@S[iAWp@_Dl@qAOcA"]],["Guinea",["rtAumA_B@oCp@k@COWkBN]IIfAsAYa@Dw@r@sANgDaBg@Bk@j@Wv@qArAf@p@F`Ai@SYVJz@}@v@f@NNbAm@pAq@~ChAVRZOf@JtAvACh@nAv@?d@k@KoArAyBtCd@CiA^s@Ey@bB{C~C?l@d@v@Bv@bBjBvAbDeEdB_ATyA\\k@x@_@wAaB}@Bs@a@k@?_@YPaAUUCcA"]],["Guinea-Bissau",["fgBklAiBa@aADu@UqJFBbATTQ`A^Xj@?r@`@|@CvA`BhBsAtAKj@y@?]z@i@Li@"]],["Liberia",["vs@ao@Hx@S`Bh@vAy@v@_AJsArAEnARVLdDr@?lE}AtDwCjDmBdCaCo@_AIy@wDiE}AYsAxBJnAe@j@w@?i@oAw@B"]],["Sierra Leone",["xqAsv@kBwAw@cBw@Cm@e@_D?cBzCDx@_@r@BhAw@KvDhEHx@n@~@t@MnCoAfBkB`@gAXsC"]],["Burkina Faso",["v`@y_ALsBu@uABaA}CeD]iCu@o@aBXsAg@Ys@{CyAe@}@yDqAmB]q@f@_CAL`BYxAoB`CE`BgFj@DhCh@z@`BPh@vAbATjGS~@^vAMzIHBnBYvCfCs@|AFdAp@xAi@`@aAxAk@"]],["Central African Rep.",["ajDu_@`ARtGYhAP\\n@~@DnAi@|EbBzASZNx@vBfHy@~BiAbDcAjB~@lAdBPjC~BKfCa@tBhBhBxD\\sCxAaAhAeBPgA|AgBO{@RsAO{Co@c@cBiEeDOc@q@a@Bq@j@yFkA}DsCReAw@QaEJ{D}AoCyEeBoA}Ba@WtAqBzBApA`@pAM~@iI~EA`AgCfBqAtAs@vBsCnA_@~@"]],["Congo",["irB{TJvBz@hBd@|BXnDKpB`@dABfAV~@`C`BzAdBvA`EGdD|G|GhAc@Lw@jBAbAjAr@SjAcAz@`@pAtAbDsEyCmBjAcCcAs@gCWOwAiB~AoDF}@}AYeCT{C~AuBwAgFp@g@tCPv@gBOwA{FF_IbBMkBiByDuBiBgC`@_CJ"]],["Gabon",["oeAcM}AMyBZuBYYHNvAw@fBuCQq@f@vAfF_BtBUzCXdC|@|AnDGhB_BNvAfCVbAr@kAbCxClBjEiEbCeDxBmEEaAk@_AwAeHgJI@oF"]],["Eq. Guinea",["i{@gMeIBAnFfJHb@]cA_F"]],["Zambia",["c_Ebs@sAp@mEbAqBz@}AxAs@hD`@t@h@`Dg@dD~@bAz@xDgBr@|QdDQlCtCXpBnAVdAfANlDbDnB`C`AB`AU~EUrBmA`CI`Dj@bC{BdCcDG{RaL@PcA]kAb@}AW_BT}@eABI|@}AC_CPaAxA_DZyB}@m@fByCZyCbEyC@NwEv@b@`EqB{@sLj@yAw@}Bu@WmGa@mAR"]],["Malawi",["wkEtx@cEd@kBrCw@nGv@vCw@bGeAAgA~@sAnCO`GtAh@|@hC`C{BLkCi@}AJoAnAq@t@PrB_BfBs@{@yD_AcAf@eDi@aDa@u@r@iD|AyA"]],["Mozambique",["_wE~fAuCOoFv@u@YiCCgA{@wBByEmA_DsB_@xAFdEWnDGvHc@`BhCxG~BzBvKlD`FtEjAb@jClCpAl@PnC_BtCe@tBCz@a@IDbE^|Ao@`@\\pArAfAtKnDvAhAQrAs@LPfBvCA~@yFc@}ErCgLqEaFu@oC]SUsB^{@GuCg@iC?}FfB_A~AMh@q@|Ai@dDB^wE}QeDsB~Au@QoAp@KnAh@|AMjCaCzB}@iCuAi@NaGrAoCfA_AdA@v@cGw@wC"]],["eSwatini",["mgE`fDf@xAtBTtBmB@cAu@kAQy@y@MeBb@m@pD"]],["Angola",["gpAz\\hAh@^r@DtAr@Tt@uCqAuA{@a@kAbA","_lAbe@sEo@mQBiBjGyBhDcCOaA[oBZoAeD{BGIc@eB?PfAsFAC|Bg@lA\\vBOxBaAhAHlFcGi@yAJU|@V~Ac@|A\\jAQbA`LAFzReCbDcCzBnJpAbN[jC_BhXF\\LvByA`CEvEfAP}B[oDcAuDKuA_AsDo@qAqD{EUsCHqBz@gAdBoFIi@}@oAdBeIbB_CQe@"]],["Burundi",["m}D`NKnAi@j@A`AfExEpAHJqFr@yAyBN}@qBiBJ"]],["Israel",["__FmlEx@~AhA[h@bCs@Vr@XFt@}A[ClAbB~H`CwIy@aALKs@{Ai@wC[q@gAAQa@u@CCpA"]],["Lebanon",["{~E_oEt@BP`@`A?eAcDgBqCyAH_@lAjBjAp@jB"]],["Madagascar",["mrHfjA{BjDq@bC_@nFs@|AR~Ab@x@bAuBd@z@e@rCPtAt@l@JfDlHvZjAtGxAfFbDn@lDrApGyBv@iBJqDdA}CRoCc@oC{Ac@AaA}AwCQ}BrA}ENwDeAoB[}BaBGyDmAwAAqBqBeD{B{@cBZuAsAVoBiCAwBaAyA"]],["Palestine",["g|EycE|AZGu@s@Yr@Wi@cCiAZ?xB\\x@"]],["Gambia",["lgB}sAyEEk@o@_ACmAp@}@?aA_@i@v@vAl@tACtAi@|CjAtDCYwA"]],["Tunisia",["gz@m|DrAeJzBqA@o@bDuBPwC{BoBo@cD^}Dg@gByEoAkCVDdBiDiAMd@bB`B@zAeAp@XlDbCbBe@jBgBBq@~AkA\\JxC`Bx@z@~@hCjAUrAPrA`Bl@"]],["Algeria",["fu@gjDA_HaIsCgE]cDu@kAcBiFoAGsCsBOyAiAeGa@e@mAt@i@bAsEJyBjA_C_EkBwEc@}BqAaE}@}Ss@cB\\{DmAuEAqAl@gCKf@fB_@|Dn@bDzBnBQvCcDtBAn@{BpAsAdJaApDIzAb@bDOxAXlBQ|BnArAuBnCGtAeAnB}Ac@}CzAwA|BlTzJ`QhKxGvA|ER@}BxEyAn@}Ar`Ami@"]],["Jordan",["e}EmiEa@_A}EnAgKuEqArFf@\\nKbBgEfE`A`@`@bAvCXn@fAtA|@|E_@F[cB_IBmA]y@?yB"]],["United Arab Emirates",["kaIqvCc@GEt@}C_@}GJ{KcKe@dA[|CdB?P`Cc@ZxAf@?pAz@pABnAf@h@xQcBrAyF"]],["Qatar",["q|HuyCLqCu@iBw@S{@|@CrBj@tBv@Lz@e@"]],["Kuwait",["yjHkzDi@xAPj@aAvClCBp@}ApDSqC_EeCN"]],["Iraq",["_tF_hEpAsF{LoEiAqFPqCmBq@eB{BuA_@gFXeAr@_Ba@aClFcCz@MtBbBbAl@zCiC|DsFlBgBvC^pC}@AAjBoBfB|FYpC~DrJOrPqKhHkCnFu@"]],["Oman",["axI}lCCoA{@qA?qAyAg@b@[QaCeB?yAfCmBfAiG|@oCtDgAX?j@hBnDrA~@hAfCzAIf@n@^bBWdCRXzAAzBjAR~Al@h@zB?lAp@?nA~Av@lBQdC`AzAJ|EuMwQgEeCoKzAmC","s~Iu_Dd@eAy@cAYPRpAXd@"]],["Vanuatu",["ct_@hbB{BrB~@XbAwAGu@","mq_@|`BZw@BwC_Bz@_@`Dt@Yh@J"]],["Cambodia",["c`SekAl@oF_CgDaGe@{D\\cDlA{AiCoDhAm@bCVnFnIxCwAxBpELlDnAdD[pAgBdBoE"]],["Thailand",["spSexAzD]`Gd@~BfDm@nFpD{AjDB]{CnD?NzElDtMMnCaCDqAtDc@lDoBpBwBVgBfB`ApAbCVLeBbDwA`@b@nAmA`@aBjEoE^tBd@oBoA{HaBmEmByDlAuDA}AToBdC}Cn@cBeAe@gAmDpAcC|BqC~AoDsAc@yAwEmCGsBwAsBm@uA|@KvBeCHn@pECrDqEwB{@b@uBEg@eAwCLwC`DKdEaDlDHhD~@xA"]],["Laos",["c~SwwAnDiAzAhCbDmA_AyAIiD`DmDJeEvCaDvCMf@dAtBDz@c@pEvBBsDo@qEdCIJwBtA}@i@iAiDaCQn@iBD\\eFgB[sBzCyAtDwF@kAlD~Bt@v@dAmFvBeH|KuChCq@lCb@fE"]],["Myanmar",["wpRs~BrBl@rBvAlCFxAvErAb@_BnD}BpCqAbCfAlDdAd@o@bBeC|CUnB@|AmAtDlBxD`BlEPuC{@wC`AuBOyEpAgB~@oFb@{FvAeDdJrFnBQzBo@cAwFh@yDzCgFWgArBYlCaDLaDeA^CoCcBo@TsAm@cAGoE{Cl@wAeDI_BoBgDFqBcGiCmCb@N{BeAc@LkAsBOcAtBuAn@@|H|DfDVjFsE_@o@vD}Bd@x@dDkFnBqCy@EpAhD`Ch@hA"]],["Vietnam",["akSq`AmDoAqEMvAyBoIyCWoFl@cCc@gEp@mCtCiCdH}KlFwBw@eA_Cu@jAmDvFAxAuDrB{CkBq@}C@cEWiDiB_BhAwDd@^pB}ApAiEr@hGhDfD|Dj@hCsIvMuDzByB~C{ApJZ~IdDbCdF`C`DdDxFxDfA_Cw@gCtCqB"]],["North Korea",["kpX{fG??????","mkXukG}CxCjAKpCfCGnCfBj@nB|AbC^vAt@DvATTmA^qBvAZn@bFTlAzAvAGLP~Ae@Vd@x@NFe@hBq@w@wAm@WPc@s@kBL_@rBU|Au@aD_C{EkBiCmC}A~@mDD^gBuHuAmAqB"]],["South Korea",["qsW}jFMQwAFmA{AcFU[o@kDjFq@`CAdFjAlBrDd@~CpArDPVkBe@uCvAqEsC_@hCkD"]],["Mongolia",["mcPcsHsEa@{JkDoH}AmDz@qEBeC|AeEDaHp@aEiCnAuBmEoE_FrAaLhAe@tC{GrAyL_AgEZcE~AyBdBwDA{F^wDq@gG_@cHmCwBTiB`AmFOlF|Iq@pAqBWeE\\wCiAaD~@sDjCTfA|CW`HZjCv@pCbCpHlAfEhB|Hy@fB~B_AlA_@`AjC`AnCjBhFdAjHF`IdAhFhBvA}@pF?fHwBbE]hGZ|Km@zEBtBuBxAwDzBUpF}BxN}@fAuAkAiFhC_D|GkAfDiBr@kC"]],["India",["i_RsoDMjAdAb@OzBlCc@bGhCGpBnBfDH~AvAdDzCm@FnEl@bAUrAbBn@fB}Hv@@^|BlBeB}@qByAK{AiDrBa@xDB|D[PkC|AG~CwAdAfCoChBzBhAl@hA{Bt@`@vBeAtC]bDZhAfCAtFf@IvChBtB~GdC~EjFtC|BfE`C?zAvGxB|AHx@vCs@hLtA|D?rIfBHxAvC{@`AtDx@bAfCnAv@|DyDfDaNdA}AjB_ErAwJtDqGlCcS?qFd@{D`HvBlCWdGqF_BgAx@mAhFiDcCeCwL?f@kDnBcBTyCbCyA}EqEgFNoEqE}BkEaEgE@mCiDsB`DaBjCwHaBuAoHp@}E]aEgDuEhFR`DoAfBDdBnC[w@zEcE~BuGjC|BxAlAzDaS|GsGXqBbBkK`AeDAUoAX_COuAyBi@UdEsDjA}B_@kIFMyBnA_A_DYuDsCgF_CeDp@oCsA}AzBbArAwE\\"]],["Bangladesh",["ebQwhCBnCdA_@M`Dx@gBHeBf@_BpAuBvDGQrA~@lBrAg@\\b@dCg@\\cDdAuCa@wBzBu@m@iA{BiAnCiBeAgC_DvA}AFQjC}DZyDCsB`@zAhDxAJ|@pBmBdB_@}Bw@AgB|H"]],["Bhutan",["kyPgnDgDtBLxBjIG|B^rDkADg@eCsCkBs@mCn@iBB"]],["Nepal",["wePgmDNtAY~BTnAdD@jKaApBcBrGY`S}GmA{DqEiC_Dz@iEbCoBZaA~A{Cf@aDvAaFl@iFP"]],["Pakistan",["oeNy|E`EfD|E\\nHq@`BtAkCvHaD`BhDrBAlC`EfE|BjEnEpEfFO|EpEcCxAUxCoBbBg@jDvL?bCdCrCq@x@oCzCyCnJd@bIBxGZiAgFaHgBP{A|A_@DoD~DwAnAwBbBiBoIdBgE]wBXg@k@kCPcGsAEiDoBoBsC?Uw@yCYiAPmAw@JwBuAyB}Bq@lAcC}DDw@gAFkAaBsATcBn@sAuBwAuEi@eFWyEy@sCzAy@xCiIpA"]],["Afghanistan",["{|KuhFkDDsEbAoC_AcAd@_A{AwBB]]UoAuAeAkBl@T|@{@FPfDmA`AeAi@yAS{ByAwINc@x@xEx@dFVtEh@tBvAo@rAUbB`BrAGjAv@fA|DEmAbC|Bp@tAxBKvBlAv@hAQxCXTv@rC?nBnBDhDbGrAjCQf@j@vBYfE\\nIeBuDuDN_CvCa@N}B~@_DsAmBtA]gCiKkEjAuCYi@{A}C]qB{@g@_DgDg@_@eA}At@"]],["Tajikistan",["}fLcgFoBkEh@sCrCo@s@wAgDH}AoB_A_CkGm@h@zA[v@qACfAz@xE_@RpByEMuF~@{J]q@vDaASwBl@DlA]pBvIOzBxAxARdAh@lAaAQgDz@GU}@jBm@tAdATnA\\\\vBC~@zAbAe@nC~@|@W"]],["Kyrgyzstan",["ozLegGm@uAaC]iIdA_@uBoBi@}GrAgAUsRXcBfA{B\\Zl@zHjBdAlA`GVhA~BrEYhCd@~D~A[l@v@l@zJ\\tF_AxELSqByE^gA{@wCPaGoClFgBlCp@rCkAgDaCz@S"]],["Turkmenistan",["cgIcdGwAcAcFg@gCv@kCzCgIK`@eBkDcAgDsBmGhBS|CmAh@wEIaAd@aBlEgJfFqE`BiGtADxBz@E|Au@^dAfDf@f@~CpBz@|C\\h@zAtCXjEkAPgDrCGdFoD|CU|EeBlCQvAb@dCClCpBnDd@b@mC[oEzCcAs@iCdCIm@iD{Dp@oD_ApCwBx@qB~Cp@TpC|@_C"]],["Iran",["qnHazDnBgB@kB|@@_@qCfBwCrFmBhC}Dm@{CcBcALuBbC{@`CmFjB_De@}@|@eFgCw@_@hAeB|AgCXiAEkFsCiAM{@x@dAbB{BfBq@I_ArC}Dh@iCbB{G`@yHu@Qm@oDe@mCqBeCBwAc@mCP}EdB}CTeFnDsCFQfDfChKuA\\rAlB_A~CO|BwC`@O~BtDtDcBhBoAvB_EvAEnD}A^QzA`HfBhAfFpQiB`FYtAuF~Aa@xCb@fE~AtFaAhEyC~Dy@dC{DpCkGjB^~BaAhAlA"]],["Syria",["g~EmkEW_@BqAq@kBkBkA^mAxAIPyCo@qAkBwAIoBaAf@{Ew@iBd@cDAeFiAkBBcF_@dBzBlBp@QpChApFzLnEfKtE|EoA"]],["Armenia",["uaHiqFhADnAsB?]vA?z@u@h@DlA{@rCo@QaB`@eAuG_@i@r@kAb@f@p@iBbAv@~@sAt@yA`@EhC"]],["Sweden",["}cA{nJwAqBeDiCaAiF~BeBJiGaC{DeEBeAoAfAcAuHwGkIkJ_E?s@oByJ^]cC{BGaQhFErHaAlAvIx@`EhC_@zB~TjIpCxGmCjC_EnBvD`FnEl@jAnIpBzDpFSpB|CfFH|@}DfDaFvC{G"]],["Belarus",["coDa~IqEp@[p@iBWaEn@S|Ah@t@{B`CqAd@Jb@gC`@w@t@lAj@~CGd@Rm@`Aq@~BjDJ|@j@JbBnAStDHr@m@hA`@jA[|CC|Eo@hEOzCBjBt@~AFBwA|@}AwBg@?oAt@kAHwAaE?yEiAm@qBcD_ARyAqImB"]],["Ukraine",["i`EgdIuFCq@m@}@HmES_CpBp@f@O|@_DHgAvABd@}FdAwC]{BzAsBAgH`AAx@pAhBm@lB^`A`ELdBv@FxA|CNdC~@zDHjDjAIhB\\EXg@lEq@r@p@ZUvHq@JkAxDXhAlBzCrCxAa@|A^xAe@s@UwAcCLc@i@OSZuBDs@Mb@UM[dAs@ZsAhA_@McAxAu@pAGrC}@bCRn@\\rA?p@l@rCRbA\\|Ao@~BAzBUtAj@Lu@lBu@e@qAw@s@k@Jr@yAuDeDaBUUy@bBmD_BGkBu@{CCiEN}En@}CBkAZiAa@s@l@uDIoARKcB}@k@"]],["Poland",["wqC}oIIvAu@jA?nAvBf@}@|ACvAcBlDTx@`BTtDdDs@xAhFwAnCZ|AStBh@dBeApAXfBmBrCKR}@fCU\\p@jBg@Kw@tCO|AaApA_COcAp@iBhAgAw@u@l@eBgCy@sP_DgE`@On@uLXoJCeBTo@|@"]],["Austria",["ciBwkHNpAnB?e@h@`A`Cd@`@lDBdBl@`McAl@eAdEb@Td@~Ea@xAc@]q@Fc@}@IcBv@[u@qDHmCc@_BD}@f@Sa@\\aCgAYgA{AsC~@oBoAeAO{C|@}AK{Ad@NXSdA"]],["Hungary",["aiCsmHmBt@Mt@xBh@|AfCxBdC~Cd@zBGbFpAdDe@tEmBd@cA`@AaAaCd@i@oB?OqAoDfAgDWOg@cHq@m@m@aAKuEz@k@S"]],["Moldova",["keDklHo@]cCSsC|@qAFyAt@LbAiA^[rAeAr@LZc@Tr@LtBER[h@NMb@vAbCr@Tb@yAUuADwApFeGz@S"]],["Romania",["moDi{GyAd@}A_@yA`@Ep@`Bj@z@Qv@nFtBSpCiAhFn@bBp@dHIxC_@lAN|AuBo@a@p@W|@j@tBy@NqAxBo@T}@jBoA_De@yBeC}AgCoEuA{BT_C@}An@cA]sCSq@m@sA?{@RqFdGEvATtAc@xA"]],["Lithuania",["qdDszISxAbD~@l@pBxEhA`E?n@}@dBUNq@Uw@vA_@pEa@h@gDcF}@oILcES[h@iBJ_E~A"]],["Latvia",["qiDefJ_Bl@Q~A_AtBpIlB~D_BhBKZi@bERnIMbF|@EuCaB}B{DcA_DrC_DCe@wCiDc@cG`BeD@"]],["Estonia",["{mDwrJ]b@lCrB{@xDtA~@dDAbGaBhDb@WuBhAV|BeAPsB{Fw@{F[yE^mEE"]],["Germany",["gwA_oIm@dBv@t@iAfAq@hBNbAqA~BxATr@Wp@d@nCf@hAp@pCh@c@z@SrAeBn@qBtAfAzAfAX]`CR`@|@g@~AElCb@pDIZt@bBw@|@HtE{@f@j@hDAWmCeBiC~Gc@|As@IwAf@m@WeC`@qEwB?q@kAq@uDb@cAe@i@gDKc@j@gCaBl@kAFoBuCX_C]CjAiEn@@dAkEe@oBu@aFlA}A~@"]],["Bulgaria",["slCmsGw@pAmAOyC^eHHcBq@iFo@qChAuBRfBrAhAlCaApBjDYjE|@@bBtDRlCeA~Ct@rCELcCbB_Aa@[TW_@_AmA}@`BuAPiAq@k@"]],["Greece",["icDs{EXz@~GNC_@tFg@e@uAmBbA{CIsCLB`@kBW","gmCcaGyDA_Du@mCdAuDSAcB_Bt@|@zBl@V`FYrFr@kCpBdB^nB?hBgBb@j@k@vBcB|AjAj@oBzAcBx@AnBvDs@y@dB~BRkApDbC@bDuAhA_Db@eCrDmELw@}AaBI_AaA]Cs@aCQmAk@kBB_@a@"]],["Turkey",["yvGigF~A`@dAs@fFYtA^bF^jBCdFhAbD@hBe@zEv@`Ag@HnBjBvAhAyAkAkAxBNfDm@fCrBnHT`DiBvEGl@rAhCV`EkBxEBtBeEpCoB_B{C|B}A}E_EsHGsAwC}JXoFaCgFw@kIC{IjC_HlAgF]kDPkFiBuEG_E`Ba@dAP`BsCn@mAz@fCv@}@dFd@|@kB~C","gbDmdGkE}@kDXWlAmD~@b@p@lFHzFhD~@}ACg@m@W}@{B~Au@"]],["Albania",["kbCg~FBr@`A\\H~@|A`B`@MBm@lBaAP_BOgC[}@`@_@L_AwAaBKd@u@Qi@t@o@RMfAXbA]tAqAp@"]],["Croatia",["ofBsaHuElBeDd@iA]o@lA_Av@jAjAzAk@hC@jD_@|ABh@h@fAm@h@pAmCzCgDtBiArAqDjAT`@zDiArBgAtD{@hDqCi@OzAsABcA~B]|@tAx@cAKgAiCDe@_@cA^mAB@w@eASSqA}Cs@"]],["Switzerland",["}z@ahHGb@\\p@yAb@eBDNpAvA`@rCYh@nA~AD`@]nBbA`BFtAi@bAwA~A^C{AqCoBDq@yAPw@a@iD@g@k@uEz@"]],["Luxembourg",["wd@ixHg@l@HvAx@Bl@QUoBs@G"]],["Belgium",["oe@o|HVdCr@FTnBlD{AdBNhFmDzAC\\eA_Dg@sCNwDi@_CvAmBn@"]],["Netherlands",["ej@gmIc@bAp@tDp@jAvB?a@pElBo@~BwAvDh@rCOgBu@oDeHoGsAgDD"]],["Portugal",["lw@wdGgAq@qA]q@`BuB?a@YsBFw@bBzAt@@zC`@\\F|AtANoAvBt@bCcAx@Zv@hAhAQ`ApAr@fB[fBT]{CP{BxAQn@kAOaCoAiAw@gEBsAf@gAFcA"]],["Spain",["pm@{fFPaAiAiA[w@bAy@u@cCnAwBuAOG}Aa@]A{C{Au@v@cBrBG`@XtB?p@aBpA\\fAp@ImCpAwAyGoCuFb@kG?sE`@iNCoAlAoJxAgAk@aFzAgFYIrB|DbC~Fj@P`AxBnBlA`DmApBrBxAh@`CvCf@lCxCzLA|BfAjAhA`BOhAcAv@qBxD_@"]],["Ireland",["ve@uoIa@nCvCpD`JtBzG]aDoEfBkEgLyFg@hBf@jB{BAuCf@"]],["New Caledonia",["kf_@z~BcLrIjAn@|FoC~BiBbCmCZaAuA@oBbA"]],["Solomon Is.",["gt^n`Aw@dAjCAjA{B_Dv@","oq^~z@\\b@rCkDh@wBcA?gA~CoA~A","il^t|@lADxBUh@]KoAcC^aAh@_@r@","wd^bq@o@~@Gf@|CuAvDiC]S_GjC","kq]fh@gEtCf@HvAk@pAqAIa@"]],["New Zealand",["mqa@fxFjExGxCnA`@s@rA]sBcD`AmBvEoAEgAoCeAa@yCFaCpAeCEc@~AqA|CoDpAmCiAOkBnB{Cr@w@pDqCpECgCyAt@]vC_D~@gCNqBkAeBVp@nDz@tBvCCt@z@QtA","}~_@rqGyHuDyBgBwAsCkAs@]mBkC}AyAfDmCoAy@rA?rAlEnFdBnAiA~AxCBjDhAr@bCpBhE`GpCvDC`CaAvEM`@iAkBsCyFeEaCc@"]],["Australia",["az[`~FwBLMjFbAdAT~CdAu@hChCbDOzBkDXcCrBmDC{AcCP_EdAiGaA","msWjhErEdBlDl@d@fBhApAfHTnDc@xG^tBhBx@IdEvBtGEtE_ChBe@CsBcBY_@m@DgAWiCTwBhBiE^qBGqBnAaCBy@xAoAV}CpB}CZsAwAtAbAyDcBx@y@lA@eBdDyGUqBi@q@YcBRsBqAoCOvCsAiCaDaAaBuAwCiA{AOu@X}CkAyBU]k@s@QoBDqE{@kBwAs@iBsBeBM}DkCgDsAjDuAg@fA}A_AaBwAj@WwCmBaBo@oAcBa@Cw@wAVAq@yDw@qCzAoBtB{FRh@mB_B_DyAs@^q@wAqBwBgAgBVgDe@BeBrCaAkB[cCp@iBpAgDp@y@S{B|@sBy@kAPm@e@{A`Br@jBjAnAdADWnA`CfEMv@_DlByC~@uFzDy@?gBp@]|@_EbAcCcAmAcEuAmGZ_BOy@VqBYwCe@g@\\aAuAwECy@kAiAw@`BMzBq@XGrAgAbBOpBFfAgA|C_CkAaArA_BlARxAk@jD]`Bq@Xu@hDRfBaAfCwEfBsGtDXn@qB|BmAvEoAk@oAvAq@_@a@rEiFfE}C`Dw@~CHlF_BhDJpDvAlGCpBf@nCvAtDrC`BhAzC`A`Bz@jDjAbBp@tCXhCI~@rBbA~EFvDpArEbDdDyAxBa@]gBjBd@nDnCpQ}C`C{Bb@wCn@cB`BqA~DWaA_Bn@uC`BjCpDb@gBmB]sBmAaBNsC`DhD|BbAjA~CzCqAEiB|BqCfBiAc@m@~FyBjCE~D_BdJPfNhC|DK"]],["Sri Lanka",["e~N_n@\\nErAv@lDl@~A}C`@_HyAcIiClB{AlCaBnE"]],["China",["gkTwpBbD}@DkDaByAyEw@sBBk@jAvAvAl@rBjD~A","stNugGNqBiCs@rD{IkKoAeBk@oCeJkK`AoByAIiEeDQwCcCmAQs@jCgDhB}GjAiC~CjAhFgAtAyN|@qF|B{BTyAvDuBtB{EC}Kl@iG[cE\\gHvBqF?wA|@iFiBaIeAkHGiFeAoCkBkCaA^aA~@mAgB_C}Hx@gEiBqHmAqCcCkCw@aH[}CVUgArDkC`D_AvChAdE]pBVp@qAmF}IoFjAyG}B@wAsDsEoB_A@oBlBm@cDcByFc@gGEkHz@oDhAkGxKiAbE{I~@kFlCqAzDoH?kDmAkI{@hBrDlAhAbAxEdCbErFc@hDdAs@jD\\jFdBDAbB`CuBlApBtHtA_@fBlDE|A_AhClCzEjB`D~BvGx@rC|AvEt@kB{Ah@mA}CeChBiBlDfA`FhCzB`CbEHdBzAiBfCcD^ExA}Cx@_FmCqDlAaCD_@fBzGv@zAjBbEbBdBjCwElBmAbEyBvDgCxCBrC|Bt@o@jBuB|@\\`Dr@|ClBPrH~MxDlFhP`J`FTxBxAbAaApBbBvGbBpE\\dArElBJr@qCm@mAjG_A|A`@hEs@|AqA_@qBvDe@~AiAhDhBbEV|CArElA]dFhBEVaCpCx@jFoBy@eD|Be@n@wDrE^WkF}DgDA}HtAo@bAuBrBNvE]cAsA|A{BnCrAdDq@fF~BtDrC~CXvAu@hBClCo@jBr@dCrCN}CxBh@hFQ`Fm@`DwAzCg@`A_BnB[hEcC~C{@rAn@tGkCbE_Cv@{EoCZEeBnAgBSaDtEiFhIqAx@yCrC{Ab@y@\\qBEmAvBm@`ARp@wDw@m@Zm@_E_BiCe@sEXiA_CaGWeAmA{HkB[m@"]],["Taiwan",["eyVg{CxCxLtAbDhBgDTuCsBcEaDwCyAz@"]],["Italy",["g`AadHyBZUe@eEc@m@dA}Gr@T`Bo@tA~C]`DfAI`BVx@aAdB{DbBcBdD}E~C}C?o@j@v@f@eIbCkDfBSd@d@fAlB}AlD_@rA~BoCjAVfBpAJjBhDrANA{@g@kBk@i@jCyEpAWz@uA~Be@tAoArCKrI}EfCqB|@eEbBW`DaAzAZrBzApANUwAjBWr@{CeA{@z@kAGw@uAh@aBGoBcAa@\\_BEi@oAsCXwAa@OqA","{tAulFcJg@fA|C]|@h@dBvCkAdBSvGeB[gBiFR","mu@s~FcB}@wBlCZfGzAKnA`AjAs@FqFl@qBmBH"]],["Denmark",["_}@svI~B\\tCYpAoBDkEyAqBoDKgAw@_Dw@DdBz@`AWv@kB\\n@jAz@UnCnCu@`B","ilAu}I_AbBvB`DpEoBZsAeHaA"]],["United Kingdom",["ve@uoItCg@zB@g@kBf@iBgDGuEzBjBfC","hRwlI[sBfC_CpFa@n@u@gAyA`Au@jB|AHaEdBeBgAmE{CaD_DNoFQrExEiE[{E@r@`DrDrDmEJcE`GgC^sDpHqFd@V~BdBx@oAfBrDfBjG?rIt@|Ag@bC|AvDUlCjAhBg@eHqEsDk@xH_@x@oAqE}@lBkBe@cCiHR"]],["Iceland",["tyAk~Kl@`CaFfCbGxClVjDrX{AcEwArLaBcJe@H{@bLm@gCaCoH]uHfCoHmB{Fx@eIkBkIL"]],["Azerbaijan",["_aHsdGy@DgCxByALa@s@uBoAiBhBeBlC{AF}@t@bDN`@zCb@dAfAl@CbBp@HzBgBeAcBz@y@hALjFrCDiCxAa@rAu@w@_AhBcAg@q@jAc@h@s@q@_@sCx@kBJ[W`BkBq@[","k_HcqFfCYdB}A^iAi@E{@t@wA??\\oArB"]],["Georgia",["wxFmnGWWmM`AqG~Aa@d@yB_@yDh@}@pA{Bl@p@ZaBjBZVjBKrCy@p@^tG^~DaBtEF]sAp@iCpBgAnBWfA{@"]],["Philippines",["{tVikAzD{FkDFeAfAt@jD","{{Vu{@{AmBU{BmBK^dCsC_ER|DfA`A|@|B|@z@zBiC","{sWay@_AbLbAvDhAkE|AbB_ArCv@|AjFsBv@qC{@}A|B}A|@pA|AGrCnB`@y@mAgD}By@mBiAeAxAwCu@_@yAmCEJyCaD|A","scVgy@hG|DaBkCqCyBwBkCgBeEc@bDbClBhBfC","s{V{pB`@pAeAnCt@dDtB`A\\`Dk@|CiBTwAWyFnBPjB_An@RzAzCaBhAgBr@fA~BuBrDZbBk@IqA}@s@z@m@XfA`BqB\\wAF}DqA`ASyHaAuDwB@{Bv@}@s@Qr@","wyVkfA^}AwB|@_C?BpAzAtA~Bz@D}AMeB","koW_kAw@|ExCs@C`Aq@zB~Al@FmCz@I^yBuBN@iAxByC_EBu@jA"]],["Malaysia",["qpRkg@a@c@cDvAMdBcCWaAqAm@PuBxBsAbCKfCTxAa@zDeAt@oApDBbAlCJhLqHVeBpBeCZeDfAkBUqCj@sA","w_V{XjDa@dF?dAbFlAdAdBtG`Dh@|Dw@~APrBdB~BO`Ch@fCqB`@eCsCdAyCe@g@iDuAe@oFi@oF}G{AfBi@cA_BDSaFyCiCeB{CoAAeBdBItAiHrBLlAdCHc@`BrCbA"]],["Brunei",["qpUaa@R`F~AEh@bAzAgBoAiAiDmB"]],["Slovenia",["iuAuaHcDNeBm@mDCe@a@a@@e@bA|Cr@RpAdARAv@lACbA_@d@^hCEk@Qn@uAUaB"]],["Finland",["uqDsnLZjCqHbCxDvCiF`FfCjDsDtCnA`CgHfCjAdBdRrJhJN~IfAdIh@rBkB`EaAk@eE~AsD_BsBsD}BiMwEeCi@TsAtG_B`AmADsH`QiFuBs@_FhBcGIwEn@}DwAaBsCuHaAaGlAtAlC"]],["Slovakia",["_lCyqHv@r@d@pAj@RtE{@`AJl@l@bHp@Nf@fDVnDgAReAk@eAyABcASCSe@GMm@m@I]c@{@?KJqAYeBdAuBi@}ARoC[}DjA"]],["Czechia",["{|Am~H}A`AuCNJv@kBf@]q@gCTS|@sCJ{A`Bz@?\\b@l@HLl@d@FBRbARxACZj@zAe@|AJzC}@dANnBnArC_ApBuAdBo@RsAb@{@qCi@iAq@oCg@q@e@s@VyAU"]],["Eritrea",["ubFcyAToAuAeHSeC_A{@qCa@eBqBsBfFw@vDkB~AqG|DyGhHaBz@z@n@tAObAaApAsBvA_Ar@eAlDoAhCAn@i@tBl@vByA~@tCfFi@"]],["Japan",["wuZ{sFvDhEClEjA~Ca@bBfBjC|F|A~IJ|GdFdCmAFuCzIj@jF~AhF@iErCdCrI~BrA`BmAq@sD~By@nAiC{D{@iB}BgEgBsCgCmK{@uEf@oEaJeC|AwKuG{BsF`@_FuA_CsEc@kBtGD`D","yf[wqGmCsAk@~EfHt@nDdExHgCjBzE|E@ZeEaByCuEKy@sG{@{CiFnEeHlB","izXcpEmBwBqBVqAsAsCh@YbApBxBpA_AdBl@t@tB`Cy@A}A"]],["Paraguay",["pjJb}B{@lBLnGsEd@qAe@eCt@e@z@QtDWlAiAFkA_@gAb@?lBbBxKtDxC|C^~E]hEw@eEoH\\wAlEmArFsCbD]nJeIoAoFCkB_BoD}Iy@wDB{DdBA|@"]],["Yemen",["_dIwuB}EtMnCt@f@vABbAfErA~H|ApDlCvAHz@KtBrA|Bd@xETj@r@t@N\\p@bBC|@XjCIr@sBEmB^y@f@sCx@qAi@IT{AWe@FwAwA_ARsAs@aBqAr@u@QgFCc@RaERkAIq@`A}Aa@mCqE{DyA_QkA"]],["Saudi Arabia",["oyEovD}E^uA}@o@gAwCYa@cAaAa@fEgEoKcBg@]oFt@iHjCsPpKePb@q@|AmCCmAjDaBl@a@dAgCrAKpARbAY`Ay@v@w@rB{@d@w@MyBdIyQbBg@i@{AlCdCnKvQfE~PjAzDxAlCpE|A`@p@aAjAH`ESb@SfFBt@PpAs@r@`BSrAvA~@XsAz@}@NmAfBgAhBgDv@cDhCgCxAa@bC}DVkCIuBrB}E|AmAjBi@`AqBKk@v@gBx@m@lAsC~EiHbB?aAcG"]],["Antarctica",["boHxfNeB?iHk@mHj@uFtAuAxB_@zDzRnBxWvAxMKdGcAa@qAkLu@kDcAwE_DyFwC","h}KrtNqZX}FwCoEpAtB~DbL[|LJxFaAlBaA","~lMl|LiCWgFFy@eBGiFqB}AwD_@iBhAeEzFw@xAWxAxAvCjM`AdGCaBmAhMv@vC{@JqAyEmA","p~Rh`M}Ba@{VdAyEWuBpBzCOvVJjEe@hBsA","j}VjkMi@cAqNbAoFc@pBdAzDr@tGOfEeA","nzWbjMoCi@yNzBvJYpGw@","d~^fjNwBkAsJ^gE|@yCfAu@xA~JXdGeA|BqA~Bu@","_db@lpO?``@~heA??a`@{DqBgJ|@kFeAq@BaHpAiH}AkQc@iQhCwPr@aM|@cWl@_Qu@qYf@aN|@{`@qBk@}ArWGdSm@fDoAxOi@c@yAsC}Cd@qAlIu@vCeAtH_AeNJmM_@aHbAcJ{@iIiA_DaAdAqAfPqBfc@{@`CiA`G}@zCeA~@cFwGpAeSm@cDtA}HScOaBcFaAmHSFiAfAkA{@eAaGc@uBbAqHg@eFq@kPWyUeCcHZiH[iGb@sGCeG[wPf@aZ?qGGkEy@qF_@yFh@oFa@wEgA_C~@eAdAaC`AoEy@mFhAoGVeFt@yGI}Fc@mHF_P|@iBuA`FgCbGOnBkApB}EwCXeGJcGKiF^kEz@uAdAmGJkWyAkEl@iGOkDwCaDxAeFb@{FScDlAwN^oFh@{CiAmAeAgElAqGSkEj@iC`AiGS{K}AiWmAcEk@uB}@o@uAVqAvFqHHmAQmAmD}C]mA|@cDaByAmFeCiHyBmAuAmBu@}Bs@_EK}B}@kCg@cDUqCs@qB}@{CWuBr@jA`AhEx@vAj@rC_@bDRxG`B`Bx@ZlAKjA}A`AhCn@zDL~IvE^hAgArAiB|@{HlBqAlAeBvC}AbA{@hAYvD{@hAOlA}@nAZhB`FrCjGZxAdAvB`AlHjArWrB~CpAnh@N}@lAqHb@_Fv@{BdA|E|@xIS|Gr@P~CiF`Ak@jA}FhAgL^q^rDqN\\gNv@iU|BcE|AaBhAqFeAeTyBcWiBqNCgNZsKl@aCuAuGy@yNCaWuAyY_AuHq@jCeAvAgA?iA`KFzK^fK?t@kAYsCyAk@oR}AeNsBsDoAiTmAsHGeHYiNwAqNkBkJ}By@mArEo@gAqAcC}@kLuAkE_A{CmAaB}AoCu@oFHaBbAmFFGkAeBmAwERq@hAoFJ{Ny@cFJuApA{EcAmSyAiLmAmDi@wBgAuCr@oE[aGbDaFe@yAmAkEw@eGJoAhAcDiAwEW}LCuLb@}A`AaCz@{Ec@kTK{Kq@oDw@gKu@wCw@mBkBqBcAoE^mAdAkDn@oEOmCdAsCr@kEo@eAuAsDc@oEaAmLaA}MeC{DVuH}B{DBcDm@g@gAgDu@cDg@_Km@mJ\\_Dv@StAgHxBoFViHjB_EJ_De@kDqA{Dh@_Kn@kKLcDnEFr@TxA~Dp@|CjA[lA_FCZlAbEzCwC~@gFPeFa@mBmAcAkAiFwBs@gAgBaBaJYqKw@aBmA{@iAgCiAmJyAkBcAcGaAgERwJk@yEJqCu@eBeCgDrCgDf@_EN_EWgKR}BSgDJwCj@sD[wE?wD[oEZiFeCiCu@yFuCyGpAcK~D{JBoLq@kHqB_FGsCi@}Cd@qF|B{EGgCr@oFp@yFRoEOaH}BsDOcKn@{D_@sD?gJf@kKaAoLGkJc@u@aBGqA}Bt@a@xAcArAqA`AgD`@_b@]eNVmC|@f@hAaCz@uL`B{U~AcFB_CaAyNbDyMj@aBlAcFn@wCdA_F^kTBoFL_FZ}KtAmCz@VlAhBdA|FrFdG\\tBfAbGh@xAlAxGhCbCzCRxACjAqBlAi@hA}AdAsJZoAtAxShAzJFhDpB`@|A~DtCiG`AeBpAkDhAsFbAaQzBkM~@cB`B_Qh@{DhAiPq@aXlB"]],["N. Cyprus",["qkEszEk@q@oCBuD{@fCrAMd@`BJR_@zALd@I"]],["Cyprus",["shEkzEcC@{AMS^mAQYTjEpA`BYl@oA"]],["Morocco",["pLyzEkA~BKxBcArEu@h@d@lAdG`@xAhArBNFrChFnAjAbBbDt@fE\\`IrC?jF\\?EjBzBD`Al@xA?fAYfDT`AzC|@L|AzFtGvE`ArGpAxAVfAdMNI}AkAu@aAgBLcAeAkCmB_CcA_@u@sBCkBgAyBeCiA}BkEgBoAyDU}CgCcBu@gDeDp@yFkAkDYgB_CgC}ImDcEiIsC?wBtA}DMoEj@uA@"]],["Egypt",["meFohCdiA??gl@z@_Ds@{B^uAgA_BkGCaNnCyC_AsAw@oDQmCXu@bBm@aA_Dn@{CHcBq@aCvIv@nAh@vCv@fBl@`@zCyCnC}GRPqApE{BhEuCvHkC|EqDzEf@b@G`CkGzE"]],["Libya",["g{CwuD?vx@dF?@rAzp@}VvIvDnBmBzHuAvA}B|C{A|Ab@dAoBFuAtBoCoAsAP}BYmBNyAc@cDH{A`AqDaBm@QsATsAiCkA{@_AaBy@KyCiFdAsAQgD`@iGvA{ApDmMzBuE`B_Bs@_B{Al@wC}@aBoC}AiCYoGf@cAxAiA?_A`@eEVo@`AfA~A_@tAr@zB{@~C"]],["Ethiopia",["uiH_q@tPvQbGFpDlC~BBt@|@hC?nAcAvDrAx@rAdCOj@WlBBzFiDjC?bAaA?oBfBa@tBwEzAo@`@oAdB_BzBMcAqBkBE[{@@sD{@qE}Aw@SqAuAwCwBcBqAcE_@kDgFh@_AuCwBxAuBm@o@h@iC@mDnAs@dAwA~@qArBcA`AhCtDSrBmBBo@Om@b@j@fAsClEkAfAmSjFgD?"]],["Djibouti",["ugGkmAuAN{@o@o@|@DrApBl@uAv@hAhBl@c@n@NlBCRsBiCuD"]],["Somaliland",["}pHifA@fKdF`HfD?lSkFjAgArCmEuBqD_Ab@g@rAyApAaB@}Ds@yEWoD}@aBKgAe@qBE"]],["Uganda",["{rE|DpRJ|DtAn@SAuCm@kAKaDi@{AkAgBkAu@_AeAnA[KiFsAu@}Bj@aDm@kC?{B{A}AhCoBhIhApCzCtEArE"]],["Rwanda",["c}D`FoApBJtBx@VhBK|@pBxBOSmBYMGwBy@w@o@RwB}@"]],["Bosnia and Herz.",["_sBqiGpDkAhAsAfDuBlC{Ci@qAgAl@i@i@}ACkD^iCA{Aj@gA?p@vA_BjA\\|ArAZ~@l@\\lB"]],["Macedonia",["{jCogGcB~@MbCd@F^`@jBClAj@`CPpAq@\\uAYcAY@Gg@gFq@{AC"]],["Serbia",["utB}}GyCs@{BFkBnAU|@yBn@OpAuBx@}@k@q@Vn@`@e@b@p@j@QhAaBtAlA|@^~@UV`@Z~CLFMo@gA\\?bDuB`@HZbAn@LOQlC}@pA}@m@I]}A~AkAq@wAfA?kAkA~@w@n@mA"]],["Montenegro",["m|BeiGt@PJe@vA`BM~@h@Ov@_AtAg@s@oCeB_AqA|@mC|@t@|@"]],["Kosovo",["u_CsdGLgAn@Sh@u@e@k@o@M[cAa@IcDtB]?n@fAGLbDf@Ff@XA"]],["Trinidad and Tobago",["n`KgbAsBYg@DFtCdDTb@Qy@w@BmA"]],["S. Sudan",["u_E}TnDcCl@uAnBh@zAMt@`@xAWxCcFrCoAr@wBpAuAfCgB@aArF}CaC{@q@qDw@{AoC[iCjDu@NgAa@oCF[f@gE?Eg@gBe@Sy@kAi@gDrBeBScBoCmBmBPwBn@y@wBIMm@}ALVrCWnCeBlAWdABbB[BAzCZz@jBDbApB{BLeB~Aa@nA{An@uBvE`GzFzBzAjC?`Dl@|Bk@rAt@"]]];
+const PALETTE = ["#49d9c0","#f9af6c","#8eaeff","#f079a9","#d5c76d","#7dd9ea","#b59ded","#d0e89c"];
+const $ = id => document.getElementById(id);
+const ctx = $("mapCanvas").getContext("2d", {alpha:false});
+const state = {
+  sources:new Map(), visibility:new Map(), points:[], screenPoints:[],
+  lastPull:null, lastSuccessfulPull:null, nextPull:null, refreshing:false, refreshTimer:null,
+  interval:CONFIG.DEFAULT_REFRESH_MS, selection:null, zoom:1, scale:1, offsetX:0, offsetY:0,
+  width:0, height:0, drawing:false, isTest:new URLSearchParams(location.search).get("test")==="1",
+  lastError:"", status:"init", pointer:null, resizeReady:false
+};
+const fmtCount = n => Number(n||0).toLocaleString();
+function makeEl(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e;}
+function safeColor(value,i){return typeof value==="string" && /^#[0-9a-fA-F]{6}$/.test(value)?value:PALETTE[i%PALETTE.length];}
+function readInterval(){try{const n=Number(localStorage.getItem("gst-viewer-refresh-ms"));return [15000,30000,60000,300000,900000,1800000,3600000,21600000,86400000].includes(n)?n:CONFIG.DEFAULT_REFRESH_MS;}catch{return CONFIG.DEFAULT_REFRESH_MS;}}
+function formatDate(date){return date?new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}).format(date):"Never";}
+function countdown(ms){if(ms<=0)return "Due now";const sec=Math.ceil(ms/1000);if(sec<60)return `${sec}s`;const min=Math.floor(sec/60),rem=sec%60;if(min<60)return `${min}m ${String(rem).padStart(2,"0")}s`;const h=Math.floor(min/60);return `${h}h ${min%60}m`;}
+function tickSchedule(){$("nextPull").textContent=state.refreshing?"Pulling…":state.nextPull?`${countdown(state.nextPull-Date.now())}`:"Not scheduled";}
+function scheduleNext(){clearTimeout(state.refreshTimer);state.nextPull=Date.now()+state.interval;state.refreshTimer=setTimeout(()=>refreshData(),state.interval);tickSchedule();}
+function setNotice(message){const el=$("mapNotice");el.textContent=message||"";el.classList.toggle("hidden",!message);}
+function setStatus(text,status="ok") {state.status=status;$("statusText").textContent=text;$("statusDot").classList.toggle("warn",status!=="ok");}
+
+// Compact signed-delta coordinate decoder, precision 0.01 degrees.
+function decodeRing(code){const values=[];let x=0,y=0,index=0,step=0;while(index<code.length){let number=0,shift=0,c;do{c=code.charCodeAt(index++)-63;number|=(c&31)<<shift;shift+=5;}while(c>=32&&index<=code.length);const delta=(number&1)?-((number+1)>>1):(number>>1);if(step%2===0){x+=delta;}else{y+=delta;values.push(x/100,y/100);}step++;}return values;}
+const WORLD = WORLD_PACKED.map(([name,rings])=>({name,rings:rings.map(decodeRing)}));
+function parsedCSV(text){
+  text=String(text).replace(/^\uFEFF/,"");
+  let rows=[],row=[],field="",quoted=false;
+  function pushRow(){row.push(field);if(row.some(v=>v.trim()!==""))rows.push(row);row=[];field="";}
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(quoted){if(c==='"'&&text[i+1]==='"'){field+='"';i++;}else if(c==='"'){quoted=false;}else{field+=c;}}
+    else if(c==='"'&&field===""){quoted=true;}
+    else if(c===","){row.push(field);field="";}
+    else if(c==="\n"||c==="\r"){if(c==="\r"&&text[i+1]==="\n")i++;pushRow();}
+    else{field+=c;}
+  }
+  if(quoted)throw Error("CSV ended inside a quoted field");
+  if(row.length||field)pushRow();
+  if(!rows.length)return {headers:[],rows:[]};
+  const rawHeaders=rows.shift();let width=rawHeaders.length;for(const cells of rows)if(cells.length>width)width=cells.length;
+  const names=new Set(),headers=[];
+  for(let i=0;i<width;i++){
+    const base=(rawHeaders[i]||"").trim()||`Column ${i+1}`;
+    let candidate=base,suffix=2;
+    while(names.has(candidate)){candidate=`${base} (${suffix++})`;}
+    names.add(candidate);headers.push(candidate);
+  }
+  return {headers,rows:rows.map(cells=>Object.fromEntries(headers.map((key,i)=>[key,cells[i]??""])))};
+}
+function parsedJSON(data){
+  const rows=Array.isArray(data)?data:data?.rows??data?.records??data?.data??data?.items;
+  if(!Array.isArray(rows))throw Error("JSON endpoint must contain an array, or a rows / records / data array");
+  const headers=[];const seen=new Set();
+  for(const row of rows){if(row&&typeof row==="object"&&!Array.isArray(row))for(const key of Object.keys(row))if(!seen.has(key)){headers.push(key);seen.add(key);}}
+  if(rows.some(row=>!row||typeof row!=="object"||Array.isArray(row)))throw Error("JSON records must be objects (one object per row)");
+  return {headers,rows:rows.map(row=>Object.fromEntries(headers.map(key=>[key,row[key]??""])))};
+}
+function cleanHeader(key){return String(key).toLowerCase().replace(/[^a-z0-9]/g,"");}
+function detectColumn(headers,explicit,axis){
+  if(explicit){const norm=cleanHeader(explicit);return headers.find(h=>h===explicit)||headers.find(h=>cleanHeader(h)===norm)||null;}
+  const accepted=axis==="lat"
+    ?["lat","latitude","latdeg","latitudedeg","latitudee","latitudedd","decimallatitude","gpslat","gpslatitude","geolat","geolatitude","coordlat","coordinatelat","coordinatelatitude","locationlat","locationlatitude","ylatitude","latwgs84","y"]
+    :axis==="lon"
+    ?["lon","long","lng","longitude","londeg","longdeg","longitudedeg","longitudedd","decimallongitude","gpslon","gpslong","gpslongitude","geolon","geolong","geolongitude","coordlon","coordlong","coordinatelongitude","locationlon","locationlongitude","xlongitude","lonwgs84","x"]
+    :["timestamp","timestamputc","time","timeutc","datetime","datetimeutc","date","observedat","recordedat","lastseen","lastseenutc","eventtime","eventtimeutc","updatedat","createdat","positiontime","utc","gpsdate","gpstime"];
+  const found=headers.find(h=>accepted.includes(cleanHeader(h)));
+  if(found)return found;
+  if(axis==="time")return headers.find(h=>/^(.*)(date|time|timestamp|observed|lastseen)(.*)$/.test(cleanHeader(h)))||null;
+  return headers.find(h=>axis==="lat"?/^(gps|geo|coord|position|location)?latitude?(degrees?|dd)?$/.test(cleanHeader(h)):/^(gps|geo|coord|position|location)?(longitude|lng|lon|long)(degrees?|dd)?$/.test(cleanHeader(h)))||null;
+}
+function coordinate(value,axis){
+  if(typeof value==="number")return Number.isFinite(value)&&Math.abs(value)<=(axis==="lat"?90:180)?value:null;
+  const match=String(value??"").trim().replace(/°/g,"").match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*([NSEW])?$/i);
+  if(!match)return null;
+  let number=Number(match[1]);if(match[2]){const h=match[2].toUpperCase();if((axis==="lat"&&!"NS".includes(h))||(axis==="lon"&&!"EW".includes(h)))return null;number=Math.abs(number)*(h==="S"||h==="W"?-1:1);}
+  return Number.isFinite(number)&&Math.abs(number)<=(axis==="lat"?90:180)?number:null;
+}
+function timestampMs(value){if(value===null||value===undefined||String(value).trim()==="")return null;const s=String(value).trim();if(/^\d{10}$/.test(s))return Number(s)*1000;if(/^\d{13}$/.test(s))return Number(s);const n=Date.parse(s);return Number.isFinite(n)?n:null;}
+function prepareSource(def,table){
+  const {headers,rows}=table;
+  const latCol=detectColumn(headers,def.latitudeColumn,"lat"),lonCol=detectColumn(headers,def.longitudeColumn,"lon"),timeCol=detectColumn(headers,def.timeColumn,"time");
+  const points=[];let latest=-Infinity;
+  if(latCol&&lonCol){for(let i=0;i<rows.length;i++){
+    const lat=coordinate(rows[i][latCol],"lat"),lon=coordinate(rows[i][lonCol],"lon");
+    if(lat===null||lon===null)continue;
+    const t=timeCol?timestampMs(rows[i][timeCol]):null;if(t!==null)latest=Math.max(latest,t);
+    points.push({lat,lon,sourceId:def.id,row:rows[i],rowNumber:i+2,timeColumn:timeCol});
+  }}
+  return {...def,headers,rowsCount:rows.length,points,latitudeDetected:latCol,longitudeDetected:lonCol,timeDetected:timeCol,latestObservation:Number.isFinite(latest)?new Date(latest):null,status:latCol&&lonCol?"ok":"no-geo",error:latCol&&lonCol?"":"Latitude/longitude columns not detected; set latitudeColumn and longitudeColumn in manifest.",loadedAt:new Date()};
+}
+function normalizedDefinitions(manifest,manifestUrl){
+  let items=Array.isArray(manifest)?manifest:manifest?.endpoints??manifest?.sources??manifest?.api?.endpoints;
+  if(items && !Array.isArray(items) && typeof items==="object")items=Object.entries(items).map(([name,value])=>typeof value==="string"?{name,url:value}:{name,...value});
+  if(!Array.isArray(items))throw Error("Manifest needs an 'endpoints' array containing CSV URL entries");
+  const usedIds=new Set();
+  return items.map((entry,i)=>{
+    const raw=typeof entry==="string"?{url:entry}:entry||{};
+    const candidate=String(raw.id??raw.name??`feed-${i+1}`).trim()||`feed-${i+1}`;
+    let id=candidate,j=2;while(usedIds.has(id))id=`${candidate}-${j++}`;usedIds.add(id);
+    const urlInput=raw.url??raw.endpoint??raw.href??"";
+    let url="",error="";
+    try{url=new URL(String(urlInput),manifestUrl).href;if(!/^https?:\/\//i.test(url))throw Error("URL must use HTTPS or HTTP");if(!urlInput)throw Error("Missing URL");}catch(e){error=`Invalid endpoint URL: ${e.message}`;}
+    return {id,name:String(raw.name||raw.label||id),url,format:String(raw.format||raw.type||"").toLowerCase(),latitudeColumn:raw.latitudeColumn??raw.latColumn??null,longitudeColumn:raw.longitudeColumn??raw.lonColumn??null,timeColumn:raw.timeColumn??null,color:safeColor(raw.color,i),definitionError:error};
+  });
+}
+async function getHTTPText(url,signal){const response=await fetch(url,{mode:"cors",cache:"no-store",credentials:"omit",signal});if(!response.ok)throw Error(`HTTP ${response.status} for ${url}`);return {text:await response.text(),type:response.headers.get("content-type")||""};}
+async function pool(items,limit,worker){const out=new Array(items.length);let index=0;await Promise.all(Array.from({length:Math.min(limit,items.length)},async()=>{while(index<items.length){const i=index++;out[i]=await worker(items[i],i);}}));return out;}
+async function getDefinitions(signal){
+  if(state.isTest){if(!window.GST_LOCAL_TEST)throw Error("Local test script is unavailable. Keep testing/gst-local-test.js beside index.html.");return window.GST_LOCAL_TEST.getDefinitions();}
+  if(CONFIG.API_MANIFEST_URL.includes("YOUR-NAMESPACE")||CONFIG.API_MANIFEST_URL.includes("YOUR-PROJECT"))throw Error("Set CONFIG.API_MANIFEST_URL to your actual GitLab Pages manifest URL in index.html.");
+  const {text}=await getHTTPText(CONFIG.API_MANIFEST_URL,signal);
+  let manifest;try{manifest=JSON.parse(text);}catch{throw Error("The manifest URL did not return valid JSON");}
+  return normalizedDefinitions(manifest,CONFIG.API_MANIFEST_URL);
+}
+async function readSource(def,signal){
+  if(def.definitionError)throw Error(def.definitionError);
+  let content,contentType="";
+  if(state.isTest){if(!def.file)throw Error("Local CSV missing: " +(def.url||def.name));content=await def.file.text();}
+  else{const remote=await getHTTPText(def.url,signal);content=remote.text;contentType=remote.type;}
+  const pathname=def.url||def.file?.name||"";
+  const isJSON=def.format==="json"||(!def.format&&(/\.json(?:[?#]|$)/i.test(pathname)||contentType.includes("application/json")));
+  let table;if(isJSON){try{table=parsedJSON(JSON.parse(content));}catch(e){throw Error(`JSON source: ${e.message}`);}}else{table=parsedCSV(content);}
+  return prepareSource(def,table);
+}
+function rebuildPoints(){state.points=[];let total=0,plotted=0;for(const src of state.sources.values()){
+  total+=src.rowsCount||0;
+  if(state.visibility.get(src.id)!==false){for(const point of src.points)state.points.push(point);plotted+=src.points.length;}
+  }
+  $("visibleCount").textContent=fmtCount(plotted);$("totalCount").textContent=fmtCount(total);
+  queueDraw();
+}
+function renderSources(){
+  const list=$("sourceList");list.replaceChildren();$("feedCount").textContent=`${state.sources.size} ${state.sources.size===1?"feed":"feeds"}`;
+  if(!state.sources.size){list.append(makeEl("div","empty-feed",state.isTest?"Drop CSV files into the local tester below. You can also add a JSON manifest to set custom column mappings.":"No endpoints were listed in the API manifest."));return;}
+  for(const src of state.sources.values()){
+    const enabled=state.visibility.get(src.id)!==false;
+    const card=makeEl("div","source");
+    const head=makeEl("div","source-head");const dot=makeEl("span","source-color");dot.style.background=src.color;
+    const name=makeEl("span","source-name",src.name);name.title=src.url||src.name;
+    const input=document.createElement("input");input.type="checkbox";input.checked=enabled;input.setAttribute("aria-label",`Show ${src.name} data`);
+    input.addEventListener("change",()=>{state.visibility.set(src.id,input.checked);closePopup();renderSources();rebuildPoints();});
+    head.append(dot,name,input);card.append(head);
+    const meta=makeEl("div","source-meta",`${fmtCount(enabled?src.points.length:0)} shown · ${fmtCount(src.points.length)} geocoded · ${fmtCount(src.rowsCount)} total`);
+    card.append(meta);
+    if(src.latestObservation)card.append(makeEl("div","source-data-time",`Newest observation: ${formatDate(src.latestObservation)}`));
+    if(src.error)card.append(makeEl("div","source-status",src.error));
+    list.append(card);
+  }
+}
+async function refreshData(){
+  if(state.refreshing)return;
+  clearTimeout(state.refreshTimer);state.refreshTimer=null;state.nextPull=null;
+  state.refreshing=true;$("refreshButton").disabled=true;$("refreshPill").textContent="PULLING";
+  setStatus("Fetching manifest and data…");tickSchedule();
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),CONFIG.HTTP_TIMEOUT_MS);
+  let err="";
+  try{
+    const definitions=await getDefinitions(controller.signal);
+    const previous=state.sources;
+    const output=await pool(definitions,CONFIG.MAX_PARALLEL_FETCHES,async def=>{
+      try{return await readSource(def,controller.signal);}
+      catch(e){const old=previous.get(def.id);return {...def,headers:old?.headers??[],rowsCount:old?.rowsCount??0,points:old?.points??[],latestObservation:old?.latestObservation??null,status:"error",error:String(e.message||e),loadedAt:old?.loadedAt??null};}
+    });
+    state.sources=new Map(output.map(src=>[src.id,src]));
+    for(const def of definitions)if(!state.visibility.has(def.id))state.visibility.set(def.id,true);
+    for(const id of [...state.visibility.keys()])if(!state.sources.has(id))state.visibility.delete(id);
+    const failures=output.filter(s=>s.status==="error").length;
+    const noGeo=output.filter(s=>s.status==="no-geo").length;
+    state.lastPull=new Date();
+    if(failures<output.length || output.length===0)state.lastSuccessfulPull=new Date();
+    setStatus(failures?`${output.length-failures}/${output.length} feeds updated · ${failures} failed`:noGeo?`${output.length} feeds loaded · ${noGeo} missing coordinates`:state.isTest?`${output.length} local source${output.length===1?"":"s"} ready`:`${output.length} feeds synced`,failures||noGeo?"warning":"ok");
+    $("apiStatus").textContent=failures?`${failures} endpoint(s) failed. Previously loaded records are retained where possible.`:state.isTest?"CSV files are read locally in the browser. No API requests are made in test mode.":"Catalog and CSV endpoints fetched via read-only HTTP GET.";
+    setNotice(output.length===0?state.isTest?"Add local CSV files in the sidebar to plot positions.":"The manifest does not list any endpoints.":output.every(s=>!s.points.length)?"No mappable positions yet. Check source headers and endpoint errors in the sidebar.":"");
+    closePopup();renderSources();rebuildPoints();
+  }catch(e){err=String(e.message||e);state.lastPull=new Date();setStatus("Connection or manifest error","warning");$("apiStatus").textContent=err;setNotice(err);}
+  finally{clearTimeout(timeout);state.refreshing=false;$("lastPull").textContent=formatDate(state.lastPull);$("refreshPill").textContent="AUTO";$("refreshButton").disabled=false;scheduleNext();}
+}
+
+// Equirectangular map projection: 360 degrees wide, 180 degrees tall.
+function fitScale(){return Math.min(state.width/360,state.height/180);}
+function mapScale(){return fitScale()*state.zoom;}
+function clampPan(){const worldW=state.scale*360,worldH=state.scale*180;
+  state.offsetX=worldW<=state.width?(state.width-worldW)/2:Math.min(0,Math.max(state.width-worldW,state.offsetX));
+  state.offsetY=worldH<=state.height?(state.height-worldH)/2:Math.min(0,Math.max(state.height-worldH,state.offsetY));
+}
+function project(lon,lat){return {x:state.offsetX+(lon+180)*state.scale,y:state.offsetY+(90-lat)*state.scale};}
+function inverse(x,y){return {lon:(x-state.offsetX)/state.scale-180,lat:90-(y-state.offsetY)/state.scale};}
+function resizeCanvas(){
+  const rect=$("mapArea").getBoundingClientRect(),width=Math.max(10,rect.width),height=Math.max(10,rect.height);
+  const oldCenter=state.resizeReady?inverse(state.width/2,state.height/2):{lon:0,lat:0};
+  state.width=width;state.height=height;
+  const pixelRatio=Math.min(2,window.devicePixelRatio||1),canvas=$("mapCanvas");
+  canvas.width=Math.round(width*pixelRatio);canvas.height=Math.round(height*pixelRatio);ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);
+  state.scale=mapScale();state.offsetX=width/2-(oldCenter.lon+180)*state.scale;state.offsetY=height/2-(90-oldCenter.lat)*state.scale;state.resizeReady=true;clampPan();queueDraw();
+}
+function changeZoom(factor,x=state.width/2,y=state.height/2){
+  const next=Math.max(1,Math.min(CONFIG.MAX_ZOOM,state.zoom*factor));if(Math.abs(next-state.zoom)<.0001)return;
+  const oldLon=(x-state.offsetX)/state.scale,oldLat=(y-state.offsetY)/state.scale;
+  state.zoom=next;state.scale=mapScale();state.offsetX=x-oldLon*state.scale;state.offsetY=y-oldLat*state.scale;clampPan();closePopup();queueDraw();
+}
+function resetWorld(){state.zoom=1;state.scale=mapScale();state.offsetX=(state.width-360*state.scale)/2;state.offsetY=(state.height-180*state.scale)/2;closePopup();queueDraw();}
+function queueDraw(){if(state.drawing)return;state.drawing=true;requestAnimationFrame(()=>{state.drawing=false;drawMap();});}
+function drawMap(){
+  const w=state.width,h=state.height;if(!w||!h)return;
+  ctx.clearRect(0,0,w,h);ctx.fillStyle="#0b1928";ctx.fillRect(0,0,w,h);
+  const s=state.scale,x0=state.offsetX,y0=state.offsetY,ww=360*s,hh=180*s;
+  ctx.save();ctx.beginPath();ctx.rect(x0,y0,ww,hh);ctx.clip();
+  ctx.fillStyle="#102437";ctx.fillRect(x0,y0,ww,hh);
+  // Meridians and parallels, kept dim enough not to obscure plotted points.
+  ctx.strokeStyle="#42607834";ctx.lineWidth=1;ctx.beginPath();
+  for(let lon=-150;lon<180;lon+=30){const x=x0+(lon+180)*s;ctx.moveTo(x,y0);ctx.lineTo(x,y0+hh);}
+  for(let lat=-60;lat<90;lat+=30){const y=y0+(90-lat)*s;ctx.moveTo(x0,y);ctx.lineTo(x0+ww,y);}
+  ctx.stroke();
+  ctx.fillStyle="#293d4b";ctx.strokeStyle="#547285";ctx.lineWidth=Math.min(1.05,0.73+0.13*Math.log2(state.zoom));
+  for(const country of WORLD){
+    ctx.beginPath();
+    for(const ring of country.rings){for(let i=0;i<ring.length;i+=2){const x=x0+(ring[i]+180)*s,y=y0+(90-ring[i+1])*s;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();}
+    ctx.fill("evenodd");ctx.stroke();
+  }
+  if(state.zoom<2.6){ctx.fillStyle="#66859688";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font=`700 ${Math.max(9,Math.min(12,10*state.zoom))}px system-ui,sans-serif`;
+    for(const [text,lon,lat] of [["NORTH AMERICA",-104,47],["SOUTH AMERICA",-59,-19],["EUROPE",17,54],["AFRICA",22,2],["ASIA",94,39],["AUSTRALIA",134,-25]]){const p=project(lon,lat);ctx.fillText(text,p.x,p.y);}
+  }
+  state.screenPoints=[];
+  for(const point of state.points){const p=project(point.lon,point.lat);if(p.x<0||p.x>w||p.y<0||p.y>h)continue;
+    const src=state.sources.get(point.sourceId),col=src?.color||PALETTE[0];
+    const radius=state.zoom<2?3.7:state.zoom<8?4.4:5.2;
+    ctx.beginPath();ctx.fillStyle=col+"44";ctx.arc(p.x,p.y,radius+3.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.fillStyle=col;ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.fillStyle="#f6fff8d0";ctx.arc(p.x-1,p.y-1,Math.max(1.15,radius*.26),0,Math.PI*2);ctx.fill();
+    state.screenPoints.push({x:p.x,y:p.y,point});
+  }
+  ctx.restore();
+  ctx.strokeStyle="#405a6a";ctx.lineWidth=1;ctx.strokeRect(x0+.5,y0+.5,ww-1,hh-1);
+  $("inViewCount").textContent=fmtCount(state.screenPoints.length);
+  $("zoomLevel").textContent=`· ${state.zoom.toFixed(state.zoom<10?1:0)}×`;
+}
+function locateHits(x,y){const found=[];for(const item of state.screenPoints){const distance=Math.hypot(item.x-x,item.y-y);if(distance<11)found.push({...item,distance});}found.sort((a,b)=>a.distance-b.distance);if(!found.length)return found;const anchor=found[0];return found.filter(item=>Math.hypot(item.x-anchor.x,item.y-anchor.y)<=1.4);}
+function closePopup(){state.selection=null;$("popup").classList.add("hidden");}
+function showPointSelection(hits,x,y){if(!hits.length){closePopup();return;}state.selection={hits,index:0,x,y};updatePopup();}
+function updatePopup(){
+  const sel=state.selection;if(!sel)return;
+  const {point}=sel.hits[sel.index],src=state.sources.get(point.sourceId);
+  $("popupSource").textContent=src?.name||point.sourceId;
+  $("popupTitle").textContent=point.timeColumn&&point.row[point.timeColumn]?String(point.row[point.timeColumn]):`CSV row ${point.rowNumber}`;
+  $("popupCoords").textContent=`${point.lat.toFixed(5)}°, ${point.lon.toFixed(5)}°  ·  row ${point.rowNumber}`;
+  const fields=$("popupFields");fields.replaceChildren();
+  const keys=src?.headers||Object.keys(point.row);
+  for(const key of keys){const field=makeEl("div","popup-field"),label=makeEl("div","field-key",key);const raw=point.row[key];const str=raw===null||raw===undefined||raw===""?"—":typeof raw==="object"?JSON.stringify(raw):String(raw);const value=makeEl("div","field-value",str);field.append(label,value);fields.append(field);}
+  $("popupIndex").textContent=`${sel.index+1} of ${sel.hits.length} at this point`;
+  $("popupPrev").disabled=sel.index===0;$("popupNext").disabled=sel.index===sel.hits.length-1;
+  const popup=$("popup");popup.classList.remove("hidden");
+  const pw=popup.offsetWidth,ph=popup.offsetHeight,margin=12;
+  const left=sel.x+19+pw<state.width-margin?sel.x+19:Math.max(margin,sel.x-pw-18);
+  const top=Math.max(margin,Math.min(state.height-ph-margin,sel.y-ph*.28));
+  popup.style.left=`${left}px`;popup.style.top=`${top}px`;
+}
+function updateHover(event){const bounds=$("mapCanvas").getBoundingClientRect(),x=event.clientX-bounds.left,y=event.clientY-bounds.top,pos=inverse(x,y);
+  if(pos.lon>=-180&&pos.lon<=180&&pos.lat>=-90&&pos.lat<=90){const ns=pos.lat>=0?"N":"S",ew=pos.lon>=0?"E":"W";$("hoverCoords").textContent=`${Math.abs(pos.lat).toFixed(2)}°${ns} · ${Math.abs(pos.lon).toFixed(2)}°${ew}`;}else{$("hoverCoords").textContent="OUTSIDE MAP";}
+}
+function setupMapControls(){
+  const canvas=$("mapCanvas"),pointer={active:false,x:0,y:0,ox:0,oy:0,moved:false};
+  canvas.addEventListener("pointerdown",e=>{if(e.button!==0)return;pointer.active=true;pointer.x=e.clientX;pointer.y=e.clientY;pointer.ox=state.offsetX;pointer.oy=state.offsetY;pointer.moved=false;canvas.setPointerCapture(e.pointerId);canvas.classList.add("dragging");});
+  canvas.addEventListener("pointermove",e=>{updateHover(e);if(!pointer.active)return;const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(dx,dy)>5)pointer.moved=true;if(pointer.moved){state.offsetX=pointer.ox+dx;state.offsetY=pointer.oy+dy;clampPan();closePopup();queueDraw();}});
+  canvas.addEventListener("pointerup",e=>{if(!pointer.active)return;pointer.active=false;canvas.classList.remove("dragging");if(!pointer.moved){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;showPointSelection(locateHits(x,y),x,y);}});
+  canvas.addEventListener("pointercancel",()=>{pointer.active=false;canvas.classList.remove("dragging");});
+  canvas.addEventListener("pointerleave",()=>{$("hoverCoords").textContent="WORLD VIEW";});
+  canvas.addEventListener("wheel",e=>{e.preventDefault();const r=canvas.getBoundingClientRect();changeZoom(Math.exp(-e.deltaY*.0016),e.clientX-r.left,e.clientY-r.top);},{passive:false});
+  canvas.addEventListener("dblclick",e=>{e.preventDefault();const r=canvas.getBoundingClientRect();changeZoom(1.8,e.clientX-r.left,e.clientY-r.top);});
+  $("zoomIn").addEventListener("click",()=>changeZoom(1.8));$("zoomOut").addEventListener("click",()=>changeZoom(1/1.8));$("resetMap").addEventListener("click",resetWorld);
+  $("popupClose").addEventListener("click",closePopup);
+  $("popupPrev").addEventListener("click",()=>{if(state.selection){state.selection.index=Math.max(0,state.selection.index-1);updatePopup();}});
+  $("popupNext").addEventListener("click",()=>{if(state.selection){state.selection.index=Math.min(state.selection.hits.length-1,state.selection.index+1);updatePopup();}});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")closePopup();if(["+","="].includes(e.key))changeZoom(1.5);if(e.key==="-")changeZoom(1/1.5);if(e.key==="0")resetWorld();});
+  if("ResizeObserver" in window)new ResizeObserver(resizeCanvas).observe($("mapArea"));else window.addEventListener("resize",resizeCanvas);
+  resizeCanvas();
+}
+// The ONLY local-test integration in the production file: ?test=1 loads an optional script.
+// Remove the entire testing/ directory for deployment. Without ?test=1 it is never requested.
+async function maybeAttachLocalTest(){
+  if(!state.isTest)return;
+  $("modePill").textContent="LOCAL TEST";
+  await new Promise((resolve,reject)=>{const script=document.createElement("script");script.src="./testing/gst-local-test.js";script.onload=resolve;script.onerror=()=>reject(Error("Could not load optional testing/gst-local-test.js"));document.head.append(script);});
+  if(!window.GST_LOCAL_TEST)throw Error("The local tester did not register its hook");
+  window.GST_LOCAL_TEST.mount($("testMount"),()=>refreshData(),normalizedDefinitions);
+}
+async function boot(){
+  state.interval=readInterval();$("frequency").value=String(state.interval);
+  $("frequency").addEventListener("change",e=>{state.interval=Number(e.target.value);try{localStorage.setItem("gst-viewer-refresh-ms",String(state.interval));}catch{}scheduleNext();});
+  $("refreshButton").addEventListener("click",()=>refreshData());
+  setupMapControls();setInterval(tickSchedule,1000);
+  try{await maybeAttachLocalTest();}catch(e){setStatus("Local test harness failed","warning");$("apiStatus").textContent=e.message;setNotice(e.message);return;}
+  if(state.isTest){setStatus("Local test mode · add CSV files");renderSources();setNotice("Drop test CSV files into the sidebar to see locations.");scheduleNext();}
+  else{await refreshData();}
+}
+boot();
+</script>
+</body>
+</html>
